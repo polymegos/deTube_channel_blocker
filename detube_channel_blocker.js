@@ -778,6 +778,9 @@
               </label>
               <span>Block Shorts</span>
             </div>
+            <button class="btn" onclick="exportData()">Export</button>
+            <button class="btn" onclick="triggerImport()">Import</button>
+            <input id="import-file" type="file" accept="application/json" style="display:none" />
         </div>
 
         <div class="channels-list">
@@ -838,6 +841,54 @@
             window.name = JSON.stringify({ action: 'refreshManager' });
         }
 
+        function exportData() {
+          try {
+            const payload = {
+              version: 'detube-export-1',
+              blockedNames: ${JSON.stringify(blockedArray)}
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+            a.download = 'detube-export-' + stamp + '.json';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+          } catch (e) {
+            try { alert('Export failed: ' + e); } catch(_){ /* no-op */ }
+          }
+        }
+
+        function triggerImport() {
+          const input = document.getElementById('import-file');
+          if (!input) return;
+          input.value = '';
+          input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+              try {
+                const raw = String(reader.result || '').trim();
+                if (!raw) throw new Error('Empty file');
+                const data = JSON.parse(raw);
+                // Accept either { blockedNames: [...] } or a plain array [ ... ]
+                const names = Array.isArray(data) ? data : Array.isArray(data.blockedNames) ? data.blockedNames : [];
+                if (!Array.isArray(names)) throw new Error('Invalid format');
+                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names } });
+                // Ask parent to rebuild UI
+                try { refreshPage(); } catch(_) {}
+              } catch (e) {
+                try { alert('Import failed: ' + e); } catch(_){}
+              }
+            };
+            reader.readAsText(file);
+          };
+          input.click();
+        }
+
         // Shorts toggle handling
         document.addEventListener('DOMContentLoaded', () => {
             const t = document.getElementById('shorts-toggle');
@@ -878,6 +929,25 @@
             tagEmAll();
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear the action
+          } else if (action.action === 'importData' && action.data) {
+            try {
+              const arr = Array.isArray(action.data.blockedNames) ? action.data.blockedNames : [];
+              let added = 0, duplicates = 0, invalid = 0;
+              for (const n of arr) {
+                if (!n || typeof n !== 'string') { invalid++; continue; }
+                if (blocked.has(n)) { duplicates++; continue; }
+                blocked.add(n);
+                added++;
+              }
+              saveBlocked();
+              applyCSS();
+              tagEmAll();
+              log(`[>] Import merged: +${added}, dupes ${duplicates}, invalid ${invalid}`);
+            } catch (e) {
+              log('Import error:', e);
+            }
+            // Ask the manager page to refresh
+            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'clearAll') {
             blocked.clear();
             saveBlocked();
