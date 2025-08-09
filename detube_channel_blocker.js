@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.1
+// @version         0.1.2
 // @description     Adds a "Block Channel" option to YouTube menus. Hide videos from blocked channels automatically.
 // @description:de  Fügt eine Option "Kanal blockieren" zu YouTube-Menüs hinzu. Blendet Videos blockierter Kanäle automatisch aus.
 // @description:es  Agrega una opción "Bloquear canal" a los menús de YouTube. Oculta automáticamente videos de canales bloqueados.
