@@ -23,29 +23,29 @@
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
 // @version         0.1.2
-// @description     Adds a "Block Channel" option to YouTube menus. Hide videos from blocked channels automatically.
-// @description:de  Fügt eine Option "Kanal blockieren" zu YouTube-Menüs hinzu. Blendet Videos blockierter Kanäle automatisch aus.
-// @description:es  Agrega una opción "Bloquear canal" a los menús de YouTube. Oculta automáticamente videos de canales bloqueados.
-// @description:fr  Ajoute une option "Bloquer la chaîne" dans les menus de YouTube. Masque automatiquement les vidéos des chaînes bloquées.
-// @description:it  Aggiunge un'opzione "Blocca canale" ai menu di YouTube. Nasconde automaticamente i video dei canali bloccati.
-// @description:pt  Adiciona a opção "Bloquear canal" aos menus do YouTube. Oculta automaticamente vídeos de canais bloqueados.
-// @description:ru  Добавляет опцию «Блокировать канал» в меню YouTube. Автоматически скрывает видео заблокированных каналов.
-// @description:ja  YouTube のメニューに「チャンネルをブロック」オプションを追加します。ブロックしたチャンネルの動画を自動的に非表示にします。
-// @description:ko  YouTube 메뉴에 "채널 차단" 옵션을 추가합니다. 차단된 채널의 동영상을 자동으로 숨깁니다.
-// @description:zh-CN 在 YouTube 菜单中添加“屏蔽频道”选项。自动隐藏被屏蔽频道的视频。
-// @description:zh-TW 在 YouTube 選單中新增「封鎖頻道」選項。自動隱藏來自被封鎖頻道的影片。
-// @description:nl  Voegt een "Kanaal blokkeren" optie toe aan YouTube-menu's. Verbergt video's van geblokkeerde kanalen automatisch.
-// @description:pl  Dodaje opcję "Zablokuj kanał" do menu YouTube. Automatycznie ukrywa filmy z zablokowanych kanałów.
-// @description:sv  Lägger till ett alternativ "Blockera kanal" i YouTube-menyer. Döljer automatiskt videor från blockerade kanaler.
-// @description:da  Tilføjer en "Bloker kanal" mulighed til YouTube-menuer. Skjuler automatisk videoer fra blokerede kanaler.
-// @description:no  Legger til "Blokker kanal"-valg i YouTube-menyer. Skjuler automatisk videoer fra blokkerte kanaler.
-// @description:fi  Lisää "Estä kanava" -valinnan YouTuben valikoihin. Piilottaa automaattisesti estettyjen kanavien videot.
-// @description:tr  YouTube menülerine "Kanalı Engelle" seçeneği ekler. Engellenen kanalların videolarını otomatik gizler.
-// @description:ar  يضيف خيار "حظر القناة" إلى قوائم YouTube. يخفي تلقائيًا مقاطع الفيديو من القنوات المحظورة.
-// @description:he  מוסיף אפשרות "חסום ערוץ" לתפריטי YouTube. מסתיר באופן אוטומטי סרטונים מערוצים חסומים.
-// @description:hi  YouTube मेनू में "चैनल ब्लॉक करें" विकल्प जोड़ता है। ब्लॉक किए गए चैनलों के वीडियो को स्वचालित रूप से छुपाता है।
-// @description:th  เพิ่มตัวเลือก "บล็อกช่อง" ในเมนู YouTube ซ่อนวิดีโอจากช่องที่ถูกบล็อกโดยอัตโนมัติ
-// @description:vi  Thêm tùy chọn "Chặn kênh" vào menu YouTube. Tự động ẩn video từ các kênh bị chặn.
+// @description     Adds a "Block Channel" and "Block Video" option to YT menus. Hide videos from blocked channels and videos automatically. Allow for blocking short-form content.
+// @description:de  Fügt "Kanal blockieren" und "Video blockieren" zu YT-Menüs hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Ermöglicht das Blockieren von Kurzvideos.
+// @description:es  Agrega "Bloquear canal" y "Bloquear video" a los menús de YT. Oculta automáticamente videos de canales y videos bloqueados. Permite bloquear contenido corto.
+// @description:fr  Ajoute "Bloquer la chaîne" et "Bloquer la vidéo" aux menus YT. Masque automatiquement les vidéos des chaînes et vidéos bloquées. Permet de bloquer les formats courts.
+// @description:it  Aggiunge "Blocca canale" e "Blocca video" ai menu di YT. Nasconde automaticamente i video dei canali e dei video bloccati. Consente di bloccare i contenuti brevi.
+// @description:pt  Adiciona "Bloquear canal" e "Bloquear vídeo" aos menus do YT. Oculta automaticamente vídeos de canais e vídeos bloqueados. Permite bloquear conteúdo curto.
+// @description:ru  Добавляет «Заблокировать канал» и «Заблокировать видео» в меню YT. Автоматически скрывает видео с заблокированных каналов и отдельные видео. Поддерживает блокировку коротких видео.
+// @description:ja  YTのメニューに「チャンネルをブロック」「動画をブロック」を追加します。ブロックしたチャンネルや動画を自動的に非表示にします。ショート動画のブロックにも対応。
+// @description:ko  YT 메뉴에 "채널 차단" 및 "동영상 차단" 옵션을 추가합니다. 차단된 채널과 동영상을 자동으로 숨깁니다. 쇼츠 콘텐츠도 차단할 수 있습니다.
+// @description:zh-CN 在 YT 菜单中添加“屏蔽频道”和“屏蔽视频”选项。自动隐藏被屏蔽频道和视频的内容。支持屏蔽短视频内容。
+// @description:zh-TW 在 YT 選單中新增「封鎖頻道」與「封鎖影片」選項。自動隱藏來自被封鎖頻道與影片的內容。支援封鎖短影片內容。
+// @description:nl  Voegt "Kanaal blokkeren" en "Video blokkeren" toe aan YT-menu's. Verbergt automatisch video's van geblokkeerde kanalen en geblokkeerde video's. Ondersteunt het blokkeren van korte content.
+// @description:pl  Dodaje "Zablokuj kanał" i "Zablokuj wideo" do menu YT. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze filmy. Umożliwia blokowanie krótkich treści.
+// @description:sv  Lägger till "Blockera kanal" och "Blockera video" i YT-menyer. Döljer automatiskt videor från blockerade kanaler och enskilda videor. Stödjer blockering av kortinnehåll.
+// @description:da  Tilføjer "Bloker kanal" og "Bloker video" til YT-menuer. Skjuler automatisk videoer fra blokerede kanaler og enkelte videoer. Understøtter blokering af kortindhold.
+// @description:no  Legger til "Blokker kanal" og "Blokker video" i YT-menyene. Skjuler automatisk videoer fra blokkerte kanaler og videoer. Støtter blokkering av kortinnhold.
+// @description:fi  Lisää "Estä kanava" ja "Estä video" YT-valikoihin. Piilottaa automaattisesti estettyjen kanavien ja videoiden sisällöt. Tukee lyhytsisällön estoa.
+// @description:tr  YT menülerine "Kanalı Engelle" ve "Videoyu Engelle" seçeneklerini ekler. Engellenen kanalların ve videoların içeriklerini otomatik gizler. Kısa içerik engelleme desteği sunar.
+// @description:ar  يضيف خيارَي "حظر القناة" و"حظر الفيديو" إلى قوائم YT. يخفي تلقائيًا الفيديوهات من القنوات والمقاطع المحظورة. يدعم حظر المحتوى القصير.
+// @description:he  מוסיף את האפשרויות "חסום ערוץ" ו"חסום סרטון" לתפריטי YT. מסתיר אוטומטית סרטונים מערוצים חסומים ומסרטונים חסומים. כולל חסימת תוכן קצר.
+// @description:hi  YT मेनू में "चैनल ब्लॉक करें" और "वीडियो ब्लॉक करें" विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। लघु सामग्री को ब्लॉक करने की सुविधा देता है।
+// @description:th  เพิ่มตัวเลือก "บล็อกช่อง" และ "บล็อกวิดีโอ" ในเมนู YT ซ่อนวิดีโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ รองรับการบล็อกเนื้อหารูปแบบสั้น
+// @description:vi  Thêm tùy chọn "Chặn kênh" và "Chặn video" vào menu YT. Tự động ẩn video từ các kênh và video bị chặn. Hỗ trợ chặn nội dung dạng ngắn.
 // @author          polymegos
 // @namespace       https://github.com/polymegos/deTube_channel_blocker
 // @supportURL      https://github.com/polymegos/deTube_channel_blocker/issues
@@ -65,11 +65,16 @@
 (function() {
   'use strict';
 
+  // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
   let blocked = new Set();
   let lastRenderer = null;
 
-  // Shorts blocker persistent state
+  // Video blocker persistence
+  const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
+  let blockedVideos = {};
+
+  // Shorts blocker persistence
   const SHORTS_STORAGE_KEY = 'detube_shorts_block_enabled';
   let shortsEnabled = false;
   let shortsUrlObserver = null;
@@ -78,13 +83,26 @@
   const log = (...a) => console.log('%c[deTube Block Channels]', 'color: green; font-weight: bold;', ...a);
 
   async function loadBlocked() {
-    // Load blocked channels from storage
+    // Load blocked channels map
     const raw = await GM_getValue(STORAGE_KEY, '[]');
     try { blocked = new Set(JSON.parse(raw)); log('Loaded blocked:', [...blocked]); }
     catch(e){ blocked = new Set(); log('Load-error', e); }
   }
 
-  // Shorts blocking
+  async function loadBlockedVideos() {
+    // Load blocked videos map
+    try {
+      const raw = await GM_getValue(VIDEOS_STORAGE_KEY, '{}');
+      blockedVideos = JSON.parse(raw) || {};
+      if (typeof blockedVideos !== 'object' || Array.isArray(blockedVideos)) blockedVideos = {};
+      log('Loaded blocked videos:', Object.keys(blockedVideos));
+    } catch (e) {
+      blockedVideos = {};
+      log('Load-error videos', e);
+    }
+  }
+
+  // Block shorts if user toggle on
   const SHORTS_BLOCK_SELECTORS = [
     'ytd-reel-shelf-renderer',
     'a[title="Shorts"]',
@@ -110,18 +128,16 @@
   }
 
   function setupShortsBlocking(enable) {
-    // Tear down previous observers
+    // Tear down observers
     if (shortsUrlObserver) { try { shortsUrlObserver.disconnect(); } catch(_){} shortsUrlObserver = null; }
     if (shortsDomObserver) { try { shortsDomObserver.disconnect(); } catch(_){} shortsDomObserver = null; }
 
     shortsEnabled = !!enable;
-
     if (!shortsEnabled) return;
 
-    // Redirect current /shorts/ if needed
     redirectIfShortsURL(window.location.href);
 
-    // Observe SPA URL changes
+    // Observe SPA URL evolution
     let lastUrl = location.href;
     shortsUrlObserver = new MutationObserver(() => {
       const currentUrl = location.href;
@@ -130,6 +146,7 @@
         redirectIfShortsURL(currentUrl);
       }
     });
+
     shortsUrlObserver.observe(document, { subtree: true, childList: true });
 
     // Observe DOM for Shorts UI and remove them
@@ -151,6 +168,12 @@
     log('Saved blocked list:', [...blocked]);
   }
 
+  async function saveBlockedVideos() {
+    // Persist blocked videos
+    await GM_setValue(VIDEOS_STORAGE_KEY, JSON.stringify(blockedVideos));
+    log('Saved blocked videos:', Object.keys(blockedVideos));
+  }
+
   async function loadShortsSetting() {
     try {
       const raw = await GM_getValue(SHORTS_STORAGE_KEY, 'false');
@@ -168,7 +191,7 @@
   }
 
   function tagVideo(el) {
-    // Tag matching for videos
+    // Tag matching for videos and channels
     const selectorsToTry = [
       // Generic
       '#channel-name a',
@@ -177,7 +200,7 @@
       'a[href*="/channel/"]',
       'a[href*="/c/"]',
       'a[href*="/user/"]',
-      // Lookup (sidebar/related etc.)
+      // Sidebars
       '.yt-lockup-byline a',
       '.yt-lockup-metadata-view-model-wiz__title a',
       'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
@@ -207,6 +230,46 @@
     return false;
   }
 
+  // Literally "best-effort" video id and title extraction
+  function getVideoInfo(el) {
+    let id = '';
+    let title = '';
+    // Try common anchor patterns to get id
+    const a = el.querySelector('a[href*="/watch?v="]');
+    if (a) {
+      try {
+        const href = a.getAttribute('href') || '';
+        // Use relative /watch?v=... or absolute URL
+        const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
+        id = url.searchParams.get('v') || '';
+      } catch (_) {}
+    }
+
+    if (!id) {
+      const lockup = el.querySelector('div[class*="content-id-"]');
+      if (lockup) {
+        const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
+        if (m && m[1]) id = m[1];
+      }
+    }
+    // Title selectors
+    const titleSelectors = [
+      'a#video-title',
+      'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+      '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
+      'span.yt-core-attributed-string[role="text"]',
+      'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+    ];
+    for (const ts of titleSelectors) {
+      const n = el.querySelector(ts);
+      if (n && n.textContent && n.textContent.trim()) { title = n.textContent.trim(); break; }
+    }
+    // write it, cut it, paste it, save it, load it, check it, quick rewrite it
+    if (id) el.dataset.detubeVidId = id;
+    if (title) el.dataset.detubeVidTitle = title;
+    return { id, title };
+  }
+
   function tagEmAll() {
     const els = document.querySelectorAll([
       'yt-lockup-view-model',
@@ -234,10 +297,12 @@
       if (!item.dataset.detube) {
         tagVideo(item);
       }
+      // Channel-based removal
       const name = item.dataset.detube && item.dataset.detube.trim();
-      if (name && blocked.has(name)) {
-        item.remove();
-      }
+      if (name && blocked.has(name)) { item.remove(); return; }
+      // Video-based removal
+      const { id } = getVideoInfo(item);
+      if (id && blockedVideos[id]) { item.remove(); return; }
     });
   }
 
@@ -264,8 +329,8 @@
       if (menu && lastRenderer) {
         // Re-tag in case the dataset wasn't updated yet
         tagVideo(lastRenderer);
-
-        const channel = lastRenderer.dataset.detube; // Get channel name from dataset
+        // Get channel name from storage
+        const channel = lastRenderer.dataset.detube;
         if (channel) {
           injectButton(channel); // Refresh channel name every time
           lastRenderer = null;   // Reset, prevent same renderer reuse
@@ -287,6 +352,8 @@
     // Remove any previous injected button
     const oldButton = menu.querySelector('.detube-block-button');
     if (oldButton) oldButton.remove();
+    const oldVideoButton = menu.querySelector('.detube-block-video-button');
+    if (oldVideoButton) oldVideoButton.remove();
 
     const button = document.createElement('yt-list-item-view-model');
     button.className = 'detube-block-button';
@@ -322,6 +389,45 @@
 
     menu.appendChild(button);
     log(`[+] Injected block button for "${channel}"`);
+
+    // Inject "Block Video" button just below
+    const videoInfo = lastRenderer ? getVideoInfo(lastRenderer) : { id: '', title: '' };
+    if (!videoInfo.id) {
+      log('[!] Could not determine video id for Block Video');
+      return;
+    }
+
+    const vBtn = document.createElement('yt-list-item-view-model');
+    vBtn.className = 'detube-block-video-button';
+    vBtn.setAttribute('role', 'menuitem');
+    vBtn.setAttribute('tabindex', '0');
+
+    const vLabelDiv = document.createElement('div');
+    vLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    const vTextWrapper = document.createElement('div');
+    vTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    const vTitleWrapper = document.createElement('div');
+    vTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    const vSpan = document.createElement('span');
+    vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
+    vSpan.setAttribute('role', 'text');
+    vSpan.textContent = `  🚧    Block Video`;
+    vTitleWrapper.appendChild(vSpan);
+    vTextWrapper.appendChild(vTitleWrapper);
+    vLabelDiv.appendChild(vTextWrapper);
+    vBtn.appendChild(vLabelDiv);
+
+    vBtn.addEventListener('click', () => {
+      const id = videoInfo.id;
+      const title = videoInfo.title || id;
+      blockedVideos[id] = title;
+      saveBlockedVideos();
+      removeBlockedVideos();
+      log(`[>] Blocked video: ${title} (${id})`);
+    });
+
+    menu.appendChild(vBtn);
+    log(`[+] Injected block video button for id "${videoInfo.id}"`);
   }
 
   function createManagementButton() {
@@ -380,12 +486,24 @@
   }
 
   function generateBlockedChannelsHTML() {
-    // Best way to manage is to direct away to local page, generate HTML for blocked channels overview
+    // Best way to manage is to direct away to local page
+    // Generate HTML for blocked channels overview
     const blockedArray = [...blocked].sort();
+    const videosArray = Object.entries(blockedVideos)
+      .map(([id, title]) => ({ id, title: String(title || id) }))
+      .sort((a, b) => a.title.localeCompare(b.title));
     const channelItems = blockedArray.map(channel => `
       <div class="channel-item" data-channel="${channel.replace(/"/g, '&quot;')}">
         <span class="channel-name">${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
         <button class="unblock-btn" onclick="unblockChannel('${channel.replace(/'/g, "\\'")}')">
+          <span>✕</span>
+        </button>
+      </div>
+    `).join('');
+    const videoItems = videosArray.map(v => `
+      <div class="channel-item" data-video-id="${v.id.replace(/"/g, '&quot;')}">
+        <span class="channel-name">${v.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+        <button class="unblock-btn" onclick="unblockVideo('${v.id.replace(/'/g, "\\'")}')">
           <span>✕</span>
         </button>
       </div>
@@ -402,6 +520,10 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        h2 {
+            margin-bottom: 10px;
         }
 
         @media (prefers-color-scheme: light) {
@@ -715,7 +837,7 @@
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: #666;
         }
 
@@ -764,12 +886,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚫 deTube Channel Blocker</h1>
+            <h1>🚫 deTube Blocker</h1>
         </div>
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
-            <button class="btn danger" onclick="clearAllChannels()" ${blockedArray.length === 0 ? 'disabled' : ''}>
-                Clear All (${blockedArray.length})
+            <button class="btn danger" onclick="clearAll()" ${(blockedArray.length + videosArray.length) === 0 ? 'disabled' : ''}>
+                Clear All (${blockedArray.length + videosArray.length})
             </button>
             <div class="toggle" title="Toggle blocking of Shorts (persisted)">
               <label class="switch">
@@ -784,15 +906,27 @@
         </div>
 
         <div class="channels-list">
+            <h2 style="padding: 0 20px;">Blocked Channels (${blockedArray.length})</h2>
             ${blockedArray.length === 0 ? `
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
                     </svg>
                     <h3>No blocked channels yet!</h3>
-                    <p>Start blocking channels by right-clicking on a video's three-dot menu and selecting "Block Channel"</p>
+                    <p>Use the three-dot menu on a video to select "Block Channel"</p>
                 </div>
             ` : channelItems}
+            <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);" />
+            <h2 style="padding: 0 20px;">Blocked Videos (${videosArray.length})</h2>
+            ${videosArray.length === 0 ? `
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
+                    </svg>
+                    <h3>No blocked videos yet!</h3>
+                    <p>Use the three-dot menu on a video to select "Block Video"</p>
+                </div>
+            ` : videoItems}
         </div>
     </div>
 
@@ -827,9 +961,26 @@
                 finish();
             }
         }
+        function unblockVideo(videoId) {
+            if (!confirm('Unblock this video?')) return;
+            const item = document.querySelector('.channel-item[data-video-id="' + videoId.replace(/"/g, '\\"') + '"]');
+            const finish = () => {
+                window.name = JSON.stringify({ action: 'unblockVideo', videoId });
+                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
+            };
+            if (item) {
+                let done = false;
+                const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
+                item.addEventListener('transitionend', onEnd);
+                setTimeout(onEnd, 400);
+                requestAnimationFrame(() => item.classList.add('removing'));
+            } else {
+                finish();
+            }
+        }
 
-        function clearAllChannels() {
-            if (!confirm('Are you sure you want to unblock all ${blockedArray.length} channels? This cannot be undone.')) return;
+        function clearAll() {
+            if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels and ${videosArray.length} videos? This cannot be undone.')) return;
             const items = Array.from(document.querySelectorAll('.channel-item'));
             if (items.length === 0) {
                 window.name = JSON.stringify({ action: 'clearAll' });
@@ -848,8 +999,9 @@
         function exportData() {
           try {
             const payload = {
-              version: 'detube-export-1',
-              blockedNames: ${JSON.stringify(blockedArray)}
+              version: 'detube-export-2',
+              blockedNames: ${JSON.stringify(blockedArray)},
+              blockedVideos: ${JSON.stringify(blockedVideos)}
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -878,10 +1030,17 @@
                 const raw = String(reader.result || '').trim();
                 if (!raw) throw new Error('Empty file');
                 const data = JSON.parse(raw);
-                // Accept either { blockedNames: [...] } or a plain array [ ... ]
-                const names = Array.isArray(data) ? data : Array.isArray(data.blockedNames) ? data.blockedNames : [];
-                if (!Array.isArray(names)) throw new Error('Invalid format');
-                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names } });
+                // Accept either legacy array, or object with channels/videos
+                let names = [];
+                let videos = {};
+                if (Array.isArray(data)) {
+                  names = data;
+                } else if (data && typeof data === 'object') {
+                  if (Array.isArray(data.blockedNames)) names = data.blockedNames;
+                  if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
+                }
+                if (!Array.isArray(names)) throw new Error('Invalid format for channels');
+                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos } });
                 // Ask parent to rebuild UI
                 try { refreshPage(); } catch(_) {}
               } catch (e) {
@@ -933,6 +1092,12 @@
             tagEmAll();
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear the action
+          } else if (action.action === 'unblockVideo' && action.videoId) {
+            try { delete blockedVideos[action.videoId]; } catch(_) {}
+            saveBlockedVideos();
+            removeBlockedVideos();
+            log(`[>] Unblocked video: ${action.videoId}`);
+            newTab.window.name = '';
           } else if (action.action === 'importData' && action.data) {
             try {
               const arr = Array.isArray(action.data.blockedNames) ? action.data.blockedNames : [];
@@ -943,10 +1108,19 @@
                 blocked.add(n);
                 added++;
               }
+              // Merge videos
+              const vids = action.data.blockedVideos && typeof action.data.blockedVideos === 'object' ? action.data.blockedVideos : {};
+              let vAdded = 0;
+              for (const [vid, title] of Object.entries(vids)) {
+                if (!vid || typeof vid !== 'string') continue;
+                if (!blockedVideos[vid]) { blockedVideos[vid] = String(title || vid); vAdded++; }
+              }
               saveBlocked();
+              saveBlockedVideos();
               applyCSS();
               tagEmAll();
-              log(`[>] Import merged: +${added}, dupes ${duplicates}, invalid ${invalid}`);
+              removeBlockedVideos();
+              log(`[>] Import merged: +${added} channels (+${vAdded} videos), dupes ${duplicates}, invalid ${invalid}`);
             } catch (e) {
               log('Import error:', e);
             }
@@ -954,10 +1128,13 @@
             try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'clearAll') {
             blocked.clear();
+            blockedVideos = {};
             saveBlocked();
+            saveBlockedVideos();
             applyCSS();
             tagEmAll();
-            log('[>] Cleared all blocked channels');
+            removeBlockedVideos();
+            log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear the action again
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
@@ -999,6 +1176,7 @@
       if (newVideosFound) {
         tagEmAll();
         applyCSS();
+        removeBlockedVideos();
       }
     });
 
@@ -1029,6 +1207,7 @@
   (async () => {
     log('Initializing...');
     await loadBlocked();
+    await loadBlockedVideos();
     await loadShortsSetting();
     tagEmAll();
     removeBlockedVideos();
