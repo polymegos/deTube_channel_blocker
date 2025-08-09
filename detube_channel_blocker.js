@@ -797,13 +797,25 @@
     </div>
 
     <script>
+        function refreshPage() {
+            try {
+                const pending = JSON.parse(window.name || 'null');
+                if (pending && pending.action && pending.action !== 'refreshManager') {
+                    // Defer refresh, avoid running over pending unblock / clearAll / toggle
+                    setTimeout(() => { window.name = JSON.stringify({ action: 'refreshManager' }); }, 600);
+                    return;
+                }
+            } catch (_) { /* idc about parse errors */ }
+            window.name = JSON.stringify({ action: 'refreshManager' });
+        }
+
         function unblockChannel(channelName) {
             if (!confirm('Are you sure you want to unblock "' + channelName + '"?')) return;
             const item = document.querySelector('.channel-item[data-channel="' + channelName.replace(/"/g, '\\"') + '"]');
             const finish = () => {
                 window.name = JSON.stringify({ action: 'unblock', channel: channelName });
-                // Request UI rebuild from parent, i.e., refresh page
-                try { refreshPage(); } catch(_) {}
+                // Refresh only after the animation completed and action was posted
+                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
             };
             if (item) {
                 let done = false;
@@ -824,21 +836,13 @@
                 return;
             }
             items.forEach((el, i) => setTimeout(() => el.classList.add('removing'), i * 25));
+            const totalAnimMs = 300 + items.length * 25; // match CSS transition + stagger
             setTimeout(() => {
+                // Post action after animations have (mostly) completed
                 window.name = JSON.stringify({ action: 'clearAll' });
-            }, 300 + items.length * 25);
-        }
-
-        function refreshPage() {
-            try {
-                const pending = JSON.parse(window.name || 'null');
-                if (pending && pending.action && pending.action !== 'refreshManager') {
-                    // Defer refresh, avoid running over pending unblock / clearAll / toggle
-                    setTimeout(() => { window.name = JSON.stringify({ action: 'refreshManager' }); }, 600);
-                    return;
-                }
-            } catch (_) { /* idc about parse errors */ }
-            window.name = JSON.stringify({ action: 'refreshManager' });
+                // Then refresh the UI slightly after to allow parent to process
+                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
+            }, totalAnimMs);
         }
 
         function exportData() {
