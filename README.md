@@ -49,7 +49,7 @@ To use this userscript, you will need a userscript manager extension installed i
 2. Create a new, empty userscript in your manager.
 3. Copy-paste the contents of `detube_channel_blocker.js` from this repository.
 4. Save the script.
-5. Browse YouTube. Open a video menu (`⋮`) and click "🚫 Block Channel".
+5. Browse YT. Open a video menu (`⋮`) and click "🚫 Block Channel".
 
 Blocked channels will no longer appear in your feed.
 
@@ -62,8 +62,8 @@ deTube_block_channels/
 └── LICENSE                    # MIT License
 ```
 
-- Runs only on YouTube domains (`youtube.com`, `m.youtube.com`, `music.youtube.com`, etc.)
-- Does not interact with YouTube's API or send network requests
+- Runs only when visiting `youtube.com`, `m.youtube.com`, `music.youtube.com`
+- Does not interact with the API or send network requests
 - Monitors navigation and dynamic content loading via `MutationObserver`
 - Uses `GM_getValue` and `GM_setValue` for safe, persistent blocklist storage
 - Does **not** track or transmit any user data
