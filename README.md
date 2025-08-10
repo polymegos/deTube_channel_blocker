@@ -1,5 +1,9 @@
 # deTube Channel Blocker
 
+![License](https://img.shields.io/badge/license-MIT-red)
+![Issues](https://img.shields.io/github/issues/polymegos/deTube_channel_blocker)
+![Last Commit](https://img.shields.io/github/last-commit/polymegos/deTube_channel_blocker)
+
 **deTube Channel Blocker** is a userscript to hide any videos from specific YouTube channels from ever appearing in your feed.
 It adds a "🚫 Block Channel" option to YouTube's menu so you can instantly block a channel without leaving the page.
 
