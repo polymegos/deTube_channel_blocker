@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.2
+// @version         0.1.3
 // @description     Adds a "Block Channel" and "Block Video" option to YT menus. Hide videos from blocked channels and videos automatically. Allow for blocking short-form content.
 // @description:de  Fügt "Kanal blockieren" und "Video blockieren" zu YT-Menüs hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Ermöglicht das Blockieren von Kurzvideos.
 // @description:es  Agrega "Bloquear canal" y "Bloquear video" a los menús de YT. Oculta automáticamente videos de canales y videos bloqueados. Permite bloquear contenido corto.
@@ -105,6 +105,7 @@
   // Block shorts if user toggle on
   const SHORTS_BLOCK_SELECTORS = [
     'ytd-reel-shelf-renderer',
+    'grid-shelf-view-model.ytGridShelfViewModelHost',
     'a[title="Shorts"]',
     'div#dismissible.style-scope.ytd-rich-shelf-renderer'
   ];
