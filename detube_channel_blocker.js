@@ -74,6 +74,10 @@
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
   let blockedVideos = {};
 
+  // Regex persistence
+  const REGEX_STORAGE_KEY = 'detube_blocked_title_patterns';
+  let blockedTitlePatterns = [];
+
   // Shorts blocker persistence
   const SHORTS_STORAGE_KEY = 'detube_shorts_block_enabled';
   let shortsEnabled = false;
@@ -102,7 +106,24 @@
     }
   }
 
-  // Block shorts if user toggle on
+  async function loadBlockedTitlePatterns() {
+    // Load blocked title patterns
+    try {
+      const raw = await GM_getValue(REGEX_STORAGE_KEY, '[]');
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        blockedTitlePatterns = arr.filter(p => typeof p === 'string');
+      } else {
+        blockedTitlePatterns = [];
+      }
+      log('Loaded title patterns:', blockedTitlePatterns);
+    } catch (e) {
+      blockedTitlePatterns = [];
+      log('Load-error title patterns', e);
+    }
+  }
+
+  // Block shorts if user toggled
   const SHORTS_BLOCK_SELECTORS = [
     'ytd-reel-shelf-renderer',
     'grid-shelf-view-model.ytGridShelfViewModelHost',
@@ -166,20 +187,21 @@
   async function saveBlocked() {
     // Persist blocked channels
     await GM_setValue(STORAGE_KEY, JSON.stringify([...blocked]));
-    log('Saved blocked list:', [...blocked]);
   }
 
   async function saveBlockedVideos() {
     // Persist blocked videos
     await GM_setValue(VIDEOS_STORAGE_KEY, JSON.stringify(blockedVideos));
-    log('Saved blocked videos:', Object.keys(blockedVideos));
+  }
+
+  async function saveBlockedTitlePatterns() {
+    await GM_setValue(REGEX_STORAGE_KEY, JSON.stringify(blockedTitlePatterns));
   }
 
   async function loadShortsSetting() {
     try {
       const raw = await GM_getValue(SHORTS_STORAGE_KEY, 'false');
       shortsEnabled = String(raw) === 'true';
-      log('Loaded shorts setting:', shortsEnabled);
     } catch (e) {
       shortsEnabled = false;
       log('Load-error shorts', e);
@@ -188,7 +210,6 @@
 
   async function saveShortsSetting() {
     await GM_setValue(SHORTS_STORAGE_KEY, shortsEnabled ? 'true' : 'false');
-    log('Saved shorts setting:', shortsEnabled);
   }
 
   function tagVideo(el) {
@@ -304,6 +325,21 @@
       // Video-based removal
       const { id } = getVideoInfo(item);
       if (id && blockedVideos[id]) { item.remove(); return; }
+      // Title-regex based removal
+      const title = (item.dataset.detubeVidTitle || '').trim();
+      if (title && blockedTitlePatterns.length > 0) {
+        for (const pat of blockedTitlePatterns) {
+          try {
+            const re = new RegExp(pat, 'i');
+            if (re.test(title)) {
+              item.remove();
+              return;
+            }
+          } catch (err) {
+            // invalid pattern, skip
+          }
+        }
+      }
     });
   }
 
@@ -473,7 +509,6 @@
         const managementButton = createManagementButton();
         managementButton.style.marginLeft = '8px';
         masthead.appendChild(managementButton);
-        log('[+] Management button injected');
       }
     };
 
@@ -509,13 +544,22 @@
         </button>
       </div>
     `).join('');
+    const patternsArray = blockedTitlePatterns.slice();
+    const patternItems = patternsArray.map(pattern => `
+      <div class="channel-item" data-pattern="${pattern.replace(/"/g, '&quot;')}">
+        <span class="channel-name">${pattern.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+        <button class="unblock-btn" onclick="removePattern('${pattern.replace(/'/g, "\\'")}')">
+          <span>✕</span>
+        </button>
+      </div>
+    `).join('');
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>deTube - Blocked Channels Manager</title>
+    <title>deTube Blocker</title>
     <style>
         * {
             margin: 0;
@@ -562,7 +606,7 @@
             .channels-list::-webkit-scrollbar-thumb {
                 background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             }
-            
+
             .channels-list::-webkit-scrollbar-track {
                 background: #e1e1e1;
             }
@@ -640,6 +684,10 @@
             border-radius: 5px;
             backdrop-filter: blur(10px);
             overflow: hidden;
+        }
+        
+        input {
+            background: #2e2e2e;
         }
 
         .header {
@@ -786,8 +834,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            margin-bottom: 10px;
+            padding-top: 2px;
+            padding-bottom: 2px;
+            padding-left: 20px;
+            padding-right: 10px;
+            margin-bottom: 5px;
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             transition: all 0.3s ease;
@@ -904,6 +955,10 @@
             <button class="btn" onclick="exportData()">Export</button>
             <button class="btn" onclick="triggerImport()">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
+            <div style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
+              <input id="pattern-input" type="text" placeholder="Block Video Title Regex" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ccc;">
+              <button class="btn" onclick="addPattern()">Add</button>
+            </div>
         </div>
 
         <div class="channels-list">
@@ -928,6 +983,17 @@
                     <p>Use the three-dot menu on a video to select "Block Video"</p>
                 </div>
             ` : videoItems}
+            <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);" />
+            <h2 style="padding: 0 20px;">Blocked Title Patterns (${patternsArray.length})</h2>
+            ${patternsArray.length === 0 ? `
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
+                </svg>
+                <h3>No title patterns yet!</h3>
+                <p>Enter a regex above to block matching titles</p>
+              </div>
+            ` : patternItems}
         </div>
     </div>
 
@@ -1062,6 +1128,38 @@
                 });
             }
         });
+
+        function addPattern() {
+          const input = document.getElementById('pattern-input');
+          const val = (input.value || '').trim();
+          if (!val) return alert('Please enter a pattern');
+          try {
+            new RegExp(val); // validate
+          } catch (e) {
+            return alert('Invalid regex: ' + e.message);
+          }
+          window.name = JSON.stringify({ action: 'addPattern', pattern: val });
+          input.value = '';
+          try { refreshPage(); } catch(_) {}
+        }
+
+        function removePattern(pattern) {
+          if (!confirm('Remove pattern "' + pattern + '"?')) return;
+          const item = document.querySelector('.channel-item[data-pattern="' + pattern.replace(/"/g, '\\"') + '"]');
+          const finish = () => {
+            window.name = JSON.stringify({ action: 'removePattern', pattern });
+            setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
+          };
+          if (item) {
+            let done = false;
+            const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
+            item.addEventListener('transitionend', onEnd);
+            setTimeout(onEnd, 400);
+            requestAnimationFrame(() => item.classList.add('removing'));
+          } else {
+            finish();
+          }
+        }
     </script>
   </body>
 </html>`;
@@ -1149,6 +1247,20 @@
             setupShortsBlocking(shortsEnabled);
             log(`[>] Shorts blocking: ${shortsEnabled ? 'ENABLED' : 'DISABLED'}`);
             newTab.window.name = '';
+          } else if (action.action === 'addPattern' && action.pattern) {
+            if (!blockedTitlePatterns.includes(action.pattern)) {
+              blockedTitlePatterns.push(action.pattern);
+              saveBlockedTitlePatterns();
+              removeBlockedVideos();
+              log(`[>] Added title pattern: ${action.pattern}`);
+            }
+            newTab.window.name = '';
+          } else if (action.action === 'removePattern' && action.pattern) {
+            blockedTitlePatterns = blockedTitlePatterns.filter(p => p !== action.pattern);
+            saveBlockedTitlePatterns();
+            removeBlockedVideos();
+            log(`[>] Removed title pattern: ${action.pattern}`);
+            newTab.window.name = '';
           }
         }
       } catch (e) {
@@ -1199,17 +1311,18 @@
     // Re-tag renderer with fresh channel name
     if (tagVideo(renderer)) {
       lastRenderer = renderer;
-      log('Three-dot clicked for:', renderer.dataset.detube);
+      // log('Three-dot clicked for:', renderer.dataset.detube);
     } else {
       log('Could not tag renderer.');
     }
   }, true);
 
   (async () => {
-    log('Initializing...');
     await loadBlocked();
     await loadBlockedVideos();
     await loadShortsSetting();
+    await loadBlockedTitlePatterns();
+
     tagEmAll();
     removeBlockedVideos();
     applyCSS();
@@ -1230,7 +1343,6 @@
 
     window.addEventListener('yt-navigate-finish', removeBlockedVideos);
     window.addEventListener('yt-navigate-finish', () => { if (shortsEnabled) removeShortsElements(); });
-    log('Ready. Await three-dot click, open menu, then see log/injected.');
   })();
 
 })();
