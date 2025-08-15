@@ -345,7 +345,7 @@
               return;
             }
           } catch (err) {
-            // invalid pattern, skip
+            // invalid pattern, doesn't matter, skip
           }
         }
       }
