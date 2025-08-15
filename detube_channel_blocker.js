@@ -89,7 +89,10 @@
   async function loadBlocked() {
     // Load blocked channels map
     const raw = await GM_getValue(STORAGE_KEY, '[]');
-    try { blocked = new Set(JSON.parse(raw)); log('Loaded blocked:', [...blocked]); }
+    try { 
+      blocked = new Set(JSON.parse(raw));
+      //log('Loaded blocked:', [...blocked]); 
+    }
     catch(e){ blocked = new Set(); log('Load-error', e); }
   }
 
@@ -99,7 +102,7 @@
       const raw = await GM_getValue(VIDEOS_STORAGE_KEY, '{}');
       blockedVideos = JSON.parse(raw) || {};
       if (typeof blockedVideos !== 'object' || Array.isArray(blockedVideos)) blockedVideos = {};
-      log('Loaded blocked videos:', Object.keys(blockedVideos));
+      //log('Loaded blocked videos:', Object.keys(blockedVideos));
     } catch (e) {
       blockedVideos = {};
       log('Load-error videos', e);
@@ -281,6 +284,10 @@
       '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
       'span.yt-core-attributed-string[role="text"]',
       'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+      'yt-formatted-string#video-title',
+      'yt-formatted-string[id="video-title"]',
+      'yt-formatted-string[class="style-scope ytd-video-renderer"]',
+      'a#video-title-link span.yt-core-attributed-string',
     ];
     for (const ts of titleSelectors) {
       const n = el.querySelector(ts);
@@ -302,7 +309,7 @@
     ].join(','));
     let count = 0;
     for (let el of els) if (tagVideo(el)) count++;
-    log(`Tagged ${count}/${els.length} videos.`);
+    //log(`Tagged ${count}/${els.length} videos.`);
   }
 
   function removeBlockedVideos() {
@@ -323,15 +330,17 @@
       const name = item.dataset.detube && item.dataset.detube.trim();
       if (name && blocked.has(name)) { item.remove(); return; }
       // Video-based removal
-      const { id } = getVideoInfo(item);
+      const info = getVideoInfo(item);
+      const id = info.id;
       if (id && blockedVideos[id]) { item.remove(); return; }
-      // Title-regex based removal
-      const title = (item.dataset.detubeVidTitle || '').trim();
+      // Title/channel-regex based removal
+      const title = (item.dataset.detubeVidTitle || info.title || '').trim();
+      const channelName = (item.dataset.detube || '').trim();
       if (title && blockedTitlePatterns.length > 0) {
         for (const pat of blockedTitlePatterns) {
           try {
             const re = new RegExp(pat, 'i');
-            if (re.test(title)) {
+            if (re.test(title) || (channelName && re.test(channelName))) {
               item.remove();
               return;
             }
@@ -357,7 +366,7 @@
       `${baseTargets.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
     ).join('\n');
     s.textContent = rules;
-    log(`Applied ${blocked.size} CSS rules.`);
+    //log(`Applied ${blocked.size} CSS rules.`);
   }
 
   function observeMenus() {
@@ -548,7 +557,7 @@
     const patternItems = patternsArray.map(pattern => `
       <div class="channel-item" data-pattern="${pattern.replace(/"/g, '&quot;')}">
         <span class="channel-name">${pattern.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
-        <button class="unblock-btn" onclick="removePattern('${pattern.replace(/'/g, "\\'")}')">
+        <button class="unblock-btn" onclick="removePattern(decodeURIComponent('${encodeURIComponent(pattern)}'))">
           <span>✕</span>
         </button>
       </div>
@@ -688,6 +697,7 @@
         
         input {
             background: #2e2e2e;
+            color: #f5f5f5;
         }
 
         .header {
@@ -943,7 +953,7 @@
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
             <button class="btn danger" onclick="clearAll()" ${(blockedArray.length + videosArray.length) === 0 ? 'disabled' : ''}>
-                Clear All (${blockedArray.length + videosArray.length})
+                Clear All (${blockedArray.length + videosArray.length + patternsArray.length})
             </button>
             <div class="toggle" title="Toggle blocking of Shorts (persisted)">
               <label class="switch">
@@ -956,7 +966,7 @@
             <button class="btn" onclick="triggerImport()">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
             <div style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
-              <input id="pattern-input" type="text" placeholder="Block Video Title Regex" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ccc;">
+              <input id="pattern-input" type="text" placeholder="Block Video Titles via Regex (JavaScript)" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ccc;">
               <button class="btn" onclick="addPattern()">Add</button>
             </div>
         </div>
@@ -1047,7 +1057,7 @@
         }
 
         function clearAll() {
-            if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels and ${videosArray.length} videos? This cannot be undone.')) return;
+            if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels, ${videosArray.length} videos and ${patternsArray.length} patterns? This cannot be undone.')) return;
             const items = Array.from(document.querySelectorAll('.channel-item'));
             if (items.length === 0) {
                 window.name = JSON.stringify({ action: 'clearAll' });
@@ -1068,7 +1078,8 @@
             const payload = {
               version: 'detube-export-2',
               blockedNames: ${JSON.stringify(blockedArray)},
-              blockedVideos: ${JSON.stringify(blockedVideos)}
+              blockedVideos: ${JSON.stringify(blockedVideos)},
+              blockedTitlePatterns: ${JSON.stringify(patternsArray)}
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1097,21 +1108,23 @@
                 const raw = String(reader.result || '').trim();
                 if (!raw) throw new Error('Empty file');
                 const data = JSON.parse(raw);
-                // Accept either legacy array, or object with channels/videos
+                // Accept either legacy array, or object with channels/videos/patterns
                 let names = [];
                 let videos = {};
+                let patterns = [];
                 if (Array.isArray(data)) {
                   names = data;
                 } else if (data && typeof data === 'object') {
                   if (Array.isArray(data.blockedNames)) names = data.blockedNames;
                   if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
+                  if (Array.isArray(data.blockedTitlePatterns)) patterns = data.blockedTitlePatterns.filter(p => typeof p === 'string');
                 }
                 if (!Array.isArray(names)) throw new Error('Invalid format for channels');
-                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos } });
+                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos, blockedTitlePatterns: patterns } });
                 // Ask parent to rebuild UI
                 try { refreshPage(); } catch(_) {}
               } catch (e) {
-                try { alert('Import failed: ' + e); } catch(_){}
+                try { alert('Import failed: ' + e); } catch(_){ }
               }
             };
             reader.readAsText(file);
@@ -1145,7 +1158,9 @@
 
         function removePattern(pattern) {
           if (!confirm('Remove pattern "' + pattern + '"?')) return;
-          const item = document.querySelector('.channel-item[data-pattern="' + pattern.replace(/"/g, '\\"') + '"]');
+          // Find item by comparing dataset to avoid CSS escaping pitfalls
+          const item = Array.from(document.querySelectorAll('.channel-item'))
+            .find(el => (el.dataset && el.dataset.pattern) === String(pattern));
           const finish = () => {
             window.name = JSON.stringify({ action: 'removePattern', pattern });
             setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
@@ -1190,7 +1205,7 @@
             applyCSS();
             tagEmAll();
             log(`[>] Unblocked channel: ${action.channel}`);
-            newTab.window.name = ''; // Clear the action
+            newTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
             try { delete blockedVideos[action.videoId]; } catch(_) {}
             saveBlockedVideos();
@@ -1214,12 +1229,19 @@
                 if (!vid || typeof vid !== 'string') continue;
                 if (!blockedVideos[vid]) { blockedVideos[vid] = String(title || vid); vAdded++; }
               }
+              // Merge title patterns
+              const pats = Array.isArray(action.data.blockedTitlePatterns) ? action.data.blockedTitlePatterns.filter(p => typeof p === 'string') : [];
+              let pAdded = 0, pDupes = 0;
+              for (const pat of pats) {
+                if (!blockedTitlePatterns.includes(pat)) { blockedTitlePatterns.push(pat); pAdded++; } else { pDupes++; }
+              }
               saveBlocked();
               saveBlockedVideos();
+              saveBlockedTitlePatterns();
               applyCSS();
               tagEmAll();
               removeBlockedVideos();
-              log(`[>] Import merged: +${added} channels (+${vAdded} videos), dupes ${duplicates}, invalid ${invalid}`);
+              log(`[>] Import merged: +${added} channels (+${vAdded} videos, +${pAdded} patterns), dupes ${duplicates} (patterns dupes ${pDupes}), invalid ${invalid}`);
             } catch (e) {
               log('Import error:', e);
             }
@@ -1228,13 +1250,15 @@
           } else if (action.action === 'clearAll') {
             blocked.clear();
             blockedVideos = {};
+            blockedTitlePatterns = [];
             saveBlocked();
             saveBlockedVideos();
+            saveBlockedTitlePatterns();
             applyCSS();
             tagEmAll();
             removeBlockedVideos();
             log('[>] Cleared all blocked channels and videos');
-            newTab.window.name = ''; // Clear the action again
+            newTab.window.name = ''; // Clear action again
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
             const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML()], { type: 'text/html' }));
@@ -1264,7 +1288,7 @@
           }
         }
       } catch (e) {
-        // Cross-origin errors are really to be expected
+        // Cross-origin errors are really to be expected here ...
       }
     }, 500);
 
