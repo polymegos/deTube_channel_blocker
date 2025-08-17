@@ -66,31 +66,31 @@ deTube_block_channels/
 ## Usage Examples
 
 ### Blocking a Channel
-1. Find a video from a channel you want to block in the suggested videos feed
-2. Click the three-dot menu (`⋮`) next to the video (on the right)
-3. Click `🚫 Block [Channel Name]`
-4. All videos from this channel will immediately disappear from your view
+- Find a video from a channel you want to block in the suggested videos feed
+- Click the three-dot menu (`⋮`) next to the video (on the right)
+- Click `🚫 Block [Channel Name]`
+- All videos from this channel will immediately disappear from your view
 
 ### Blocking a Specific Video
-1. Find the video you want to block in the suggested videos feed
-2. Click the three-dot menu (`⋮`) next to the video (on the right)
-3. Click `🚧 Block This Video`. This specific video will be hidden from all views.
+- Find the video you want to block in the suggested videos feed
+- Click the three-dot menu (`⋮`) next to the video (on the right)
+- Click `🚧 Block This Video`. This specific video will be hidden from all views.
 
 ### Whitelisting a Channel
-1. Open the Blocked Channels Manager (click the 🚫 icon in the top right of the page)
-2. Find a video of the channel you want to whitelist in the suggested videos list
-3. Click the `⚪ Whitelist [Channel Name]` button. The channel will be moved to the "Whitelisted Channels" section.
+- Open the Blocked Channels Manager (click the 🚫 icon in the top right of the page)
+- Find a video of the channel you want to whitelist in the suggested videos list
+- Click the `⚪ Whitelist [Channel Name]` button. The channel will be moved to the "Whitelisted Channels" section.
 
 ### Using Whitelist Mode
-1. In the Blocked Channels Manager (click the 🚫 icon in the top right of the page), enable "Whitelist Mode"
-2. In this mode, only channels in your whitelist will be shown, all other channels will be hidden
-3. You only ever see the whitelist when in whitelist mode (otherwise the UI would be to full)
+- In the Blocked Channels Manager (click the 🚫 icon in the top right of the page), enable "Whitelist Mode"
+- In this mode, only channels in your whitelist will be shown, all other channels will be hidden
+- You only ever see the whitelist when in whitelist mode (otherwise the UI would be to full)
 
 ### Blocking by Title Pattern
-1. In the Blocked Channels Manager, go to the "Title Patterns" section
-2. Enter a regular expression pattern to match video titles, e.g. `\b(React)\b` for videos with "react" or "React" in the title
-3. Click "Add"
-4. Any video with a title matching this pattern will be hidden
+- In the Blocked Channels Manager, go to the "Title Patterns" section
+- Enter a regular expression pattern to match video titles, e.g. `\b(React)\b` for videos with "react" or "React" in the title
+- Click "Add"
+- Any video with a title matching this pattern will be hidden
 
 ## License
 
