@@ -22,30 +22,30 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.3
-// @description     Adds a "Block Channel" and "Block Video" option to YT menus. Hide videos from blocked channels and videos automatically. Allow for blocking short-form content.
-// @description:de  Fügt "Kanal blockieren" und "Video blockieren" zu YT-Menüs hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Ermöglicht das Blockieren von Kurzvideos.
-// @description:es  Agrega "Bloquear canal" y "Bloquear video" a los menús de YT. Oculta automáticamente videos de canales y videos bloqueados. Permite bloquear contenido corto.
-// @description:fr  Ajoute "Bloquer la chaîne" et "Bloquer la vidéo" aux menus YT. Masque automatiquement les vidéos des chaînes et vidéos bloquées. Permet de bloquer les formats courts.
-// @description:it  Aggiunge "Blocca canale" e "Blocca video" ai menu di YT. Nasconde automaticamente i video dei canali e dei video bloccati. Consente di bloccare i contenuti brevi.
-// @description:pt  Adiciona "Bloquear canal" e "Bloquear vídeo" aos menus do YT. Oculta automaticamente vídeos de canais e vídeos bloqueados. Permite bloquear conteúdo curto.
-// @description:ru  Добавляет «Заблокировать канал» и «Заблокировать видео» в меню YT. Автоматически скрывает видео с заблокированных каналов и отдельные видео. Поддерживает блокировку коротких видео.
-// @description:ja  YTのメニューに「チャンネルをブロック」「動画をブロック」を追加します。ブロックしたチャンネルや動画を自動的に非表示にします。ショート動画のブロックにも対応。
-// @description:ko  YT 메뉴에 "채널 차단" 및 "동영상 차단" 옵션을 추가합니다. 차단된 채널과 동영상을 자동으로 숨깁니다. 쇼츠 콘텐츠도 차단할 수 있습니다.
-// @description:zh-CN 在 YT 菜单中添加“屏蔽频道”和“屏蔽视频”选项。自动隐藏被屏蔽频道和视频的内容。支持屏蔽短视频内容。
-// @description:zh-TW 在 YT 選單中新增「封鎖頻道」與「封鎖影片」選項。自動隱藏來自被封鎖頻道與影片的內容。支援封鎖短影片內容。
-// @description:nl  Voegt "Kanaal blokkeren" en "Video blokkeren" toe aan YT-menu's. Verbergt automatisch video's van geblokkeerde kanalen en geblokkeerde video's. Ondersteunt het blokkeren van korte content.
-// @description:pl  Dodaje "Zablokuj kanał" i "Zablokuj wideo" do menu YT. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze filmy. Umożliwia blokowanie krótkich treści.
-// @description:sv  Lägger till "Blockera kanal" och "Blockera video" i YT-menyer. Döljer automatiskt videor från blockerade kanaler och enskilda videor. Stödjer blockering av kortinnehåll.
-// @description:da  Tilføjer "Bloker kanal" og "Bloker video" til YT-menuer. Skjuler automatisk videoer fra blokerede kanaler og enkelte videoer. Understøtter blokering af kortindhold.
-// @description:no  Legger til "Blokker kanal" og "Blokker video" i YT-menyene. Skjuler automatisk videoer fra blokkerte kanaler og videoer. Støtter blokkering av kortinnhold.
-// @description:fi  Lisää "Estä kanava" ja "Estä video" YT-valikoihin. Piilottaa automaattisesti estettyjen kanavien ja videoiden sisällöt. Tukee lyhytsisällön estoa.
-// @description:tr  YT menülerine "Kanalı Engelle" ve "Videoyu Engelle" seçeneklerini ekler. Engellenen kanalların ve videoların içeriklerini otomatik gizler. Kısa içerik engelleme desteği sunar.
-// @description:ar  يضيف خيارَي "حظر القناة" و"حظر الفيديو" إلى قوائم YT. يخفي تلقائيًا الفيديوهات من القنوات والمقاطع المحظورة. يدعم حظر المحتوى القصير.
-// @description:he  מוסיף את האפשרויות "חסום ערוץ" ו"חסום סרטון" לתפריטי YT. מסתיר אוטומטית סרטונים מערוצים חסומים ומסרטונים חסומים. כולל חסימת תוכן קצר.
-// @description:hi  YT मेनू में "चैनल ब्लॉक करें" और "वीडियो ब्लॉक करें" विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। लघु सामग्री को ब्लॉक करने की सुविधा देता है।
-// @description:th  เพิ่มตัวเลือก "บล็อกช่อง" และ "บล็อกวิดีโอ" ในเมนู YT ซ่อนวิดีโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ รองรับการบล็อกเนื้อหารูปแบบสั้น
-// @description:vi  Thêm tùy chọn "Chặn kênh" và "Chặn video" vào menu YT. Tự động ẩn video từ các kênh và video bị chặn. Hỗ trợ chặn nội dung dạng ngắn.
+// @version         0.1.4
+// @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YouTube video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
+// @description:de  Fügt YouTube‑Videomenüs die Optionen „Kanal blockieren“, „Video blockieren“ und „Kanal auf Whitelist setzen“ hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Unterstützt auch Shorts.
+// @description:es  Agrega al menú de videos de YouTube las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También es compatible con Shorts.
+// @description:fr  Ajoute aux menus vidéo de YouTube les options « Bloquer la chaîne », « Bloquer la vidéo » et « Autoriser la chaîne (whitelist) ». Masque automatiquement les contenus des chaînes et vidéos bloquées. Prend aussi en charge les Shorts.
+// @description:it  Aggiunge ai menu dei video di YouTube le opzioni “Blocca canale”, “Blocca video” e “Inserisci canale nella whitelist”. Nasconde automaticamente i video di canali o video bloccati. Supporta anche i Shorts.
+// @description:pt  Adiciona ao menu de vídeos do YouTube as opções “Bloquear canal”, “Bloquear vídeo” e “Colocar canal na lista branca”. Oculta automaticamente vídeos de canais bloqueados e vídeos bloqueados. Suporta também Shorts.
+// @description:ru  Добавляет в меню видео на YouTube опции «Заблокировать канал», «Заблокировать видео» и «Добавить канал в белый список». Автоматически скрывает видео из заблокированных каналов и отдельных видео. Поддерживает Shorts.
+// @description:ja  YouTubeの動画メニューに「チャンネルをブロック」「動画をブロック」「チャンネルをホワイトリストに登録」オプションを追加します。ブロックされたチャンネルや動画を自動的に非表示にします。Shortsにも対応。
+// @description:ko  YouTube 비디오 메뉴에 “채널 차단”, “동영상 차단”, “화이트리스트 채널 추가” 옵션을 추가합니다. 차단된 채널과 동영상을 자동으로 숨깁니다. Shorts도 지원합니다.
+// @description:zh-CN  在 YouTube 视频菜单中添加“屏蔽频道”“屏蔽视频”和“将频道加入白名单”选项。自动隐藏来自被屏蔽频道或被屏蔽视频的内容。同时支持 Shorts。
+// @description:zh-TW  在 YouTube 影片選單中新增“封鎖頻道”、“封鎖影片”與“將頻道加入白名單”選項。自動隱藏被封鎖頻道或影片的內容，並支援 Shorts。
+// @description:nl  Voegt de opties “Kanaal blokkeren”, “Video blokkeren” en “Kanaal op de witte lijst zetten” toe aan YouTube‑videomenu’s. Verbergt automatisch video’s van geblokkeerde kanalen en geblokkeerde video’s. Shorts worden ook ondersteund.
+// @description:pl  Dodaje do menu wideo YouTube opcje „Zablokuj kanał”, „Zablokuj wideo” i „Dodaj kanał do białej listy”. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze zablokowane filmy. Obsługuje także Shorts.
+// @description:sv  Lägger till alternativen “Blockera kanal”, “Blockera video” och “Vitlista kanal” i YouTubes videomenyer. Dölj automatiskt videor från blockerade kanaler och blockerade videor. Stödjer även Shorts.
+// @description:da  Tilføjer mulighederne “Bloker kanal”, “Bloker video” og “Whitelist kanal” til YouTubes videomenuer. Skjuler automatisk videoer fra blokerede kanaler og blokerede videoer. Understøtter også Shorts.
+// @description:no  Legger til alternativene “Blokker kanal”, “Blokker video” og “Whiteliste kanal” i YouTube‑videomenyer. Skjuler automatisk videoer fra blokkerte kanaler og blokkerte videoer. Støtter også Shorts.
+// @description:fi  Lisää YouTube‑videovalikoihin vaihtoehdot “Estä kanava”, “Estä video” ja “Lisää kanava valkoiselle listalle”. Piilottaa automaattisesti estettyjen kanavien ja videoiden sisällöt. Tukee myös Shorts‑sisältöä.
+// @description:tr  YouTube video menülerine “Kanalı Engelle”, “Videoyu Engelle” ve “Kanalı Beyaz Listeye Ekle” seçeneklerini ekler. Engellenen kanalların içeriklerini ve engellenen videoları otomatik olarak gizler. Shorts desteği de sunar.
+// @description:ar  يضيف إلى قوائم فيديو يوتيوب خيارات "حظر القناة" و"حظر الفيديو" و"إضافة القناة إلى القائمة البيضاء". يخفي تلقائيًا مقاطع الفيديو من القنوات المحظورة والفيديوهات المحظورة. كما يدعم Shorts.
+// @description:he  מוסיף לתפריטי הווידאו של YouTube את האפשרויות "חסום ערוץ", "חסום סרטון" ו"הוסף ערוץ לרשימה לבנה". מסתיר באופן אוטומטי סרטונים מערוצים חסומים וסרטונים חסומים. תומך גם ב‑Shorts.
+// @description:hi  YouTube वीडियो मेनू में “चैनल ब्लॉक करें”, “वीडियो ब्लॉक करें” और “चैनल को व्हाइटलिस्ट में जोड़ें” विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। Shorts का भी समर्थन करता है।
+// @description:th  เพิ่มตัวเลือก “บล็อกช่อง”, “บล็อกวิดีโอ” และ “เพิ่มช่องในรายการที่ไวท์ลิสต์” ในเมนูวิดีโอของ YouTube ซ่อนวิดีโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ รองรับ Shorts ด้วย.
+// @description:vi  Thêm tùy chọn "Chặn kênh", "Chặn video" và "Thêm kênh vào danh sách trắng" vào menu video của YouTube. Tự động ẩn video từ các kênh bị chặn và video bị chặn. Hỗ trợ cả Shorts.
 // @author          polymegos
 // @namespace       https://github.com/polymegos/deTube_channel_blocker
 // @supportURL      https://github.com/polymegos/deTube_channel_blocker/issues
@@ -70,6 +70,12 @@
   let blocked = new Set();
   let lastRenderer = null;
 
+  // Whitelist persistence
+  const WHITELIST_STORAGE_KEY = 'detube_whitelist_channels_store';
+  let whitelisted = new Set();
+  const WHITELIST_MODE_STORAGE_KEY = 'detube_whitelist_mode_enabled';
+  let whitelistModeEnabled = false; // hard off by default
+
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
   let blockedVideos = {};
@@ -92,8 +98,38 @@
     try { 
       blocked = new Set(JSON.parse(raw));
       //log('Loaded blocked:', [...blocked]); 
+    } catch(e){ blocked = new Set(); log('Load-error', e); }
+  }
+
+  async function loadWhitelist() {
+    // Load whitelisted channels
+    try {
+      const raw = await GM_getValue(WHITELIST_STORAGE_KEY, '[]');
+      const arr = JSON.parse(raw);
+      whitelisted = new Set(Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : []);
+      //log('Loaded whitelist:', [...whitelisted]);
+    } catch (e) {
+      whitelisted = new Set();
+      log('Load-error whitelist', e);
     }
-    catch(e){ blocked = new Set(); log('Load-error', e); }
+  }
+
+  async function saveWhitelist() {
+    await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
+  }
+
+  async function loadWhitelistMode() {
+    try {
+      const raw = await GM_getValue(WHITELIST_MODE_STORAGE_KEY, 'false');
+      whitelistModeEnabled = String(raw) === 'true';
+    } catch (e) {
+      whitelistModeEnabled = false;
+      log('Load-error whitelist mode', e);
+    }
+  }
+
+  async function saveWhitelistMode() {
+    await GM_setValue(WHITELIST_MODE_STORAGE_KEY, whitelistModeEnabled ? 'true' : 'false');
   }
 
   async function loadBlockedVideos() {
@@ -328,15 +364,20 @@
       }
       // Channel-based removal
       const name = item.dataset.detube && item.dataset.detube.trim();
-      if (name && blocked.has(name)) { item.remove(); return; }
+      if (whitelistModeEnabled) {
+        // In whitelist mode: remove anything NOT in the whitelist
+        if (!name || !whitelisted.has(name)) { item.remove(); return; }
+      } else {
+        if (name && blocked.has(name)) { item.remove(); return; }
+      }
       // Video-based removal
       const info = getVideoInfo(item);
       const id = info.id;
-      if (id && blockedVideos[id]) { item.remove(); return; }
+      if (!whitelistModeEnabled && id && blockedVideos[id]) { item.remove(); return; }
       // Title/channel-regex based removal
       const title = (item.dataset.detubeVidTitle || info.title || '').trim();
       const channelName = (item.dataset.detube || '').trim();
-      if (title && blockedTitlePatterns.length > 0) {
+      if (!whitelistModeEnabled && title && blockedTitlePatterns.length > 0) {
         for (const pat of blockedTitlePatterns) {
           try {
             const re = new RegExp(pat, 'i');
@@ -362,7 +403,9 @@
       'ytd-grid-video-renderer',
       'ytd-rich-item-renderer'
     ];
-    const rules = [...blocked].map(n =>
+    // In whitelist mode we rely on DOM removal for performance correctness.
+    // Only apply CSS rules for explicit blocked channels when not in whitelist mode.
+    const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
       `${baseTargets.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
     ).join('\n');
     s.textContent = rules;
@@ -400,6 +443,8 @@
     if (oldButton) oldButton.remove();
     const oldVideoButton = menu.querySelector('.detube-block-video-button');
     if (oldVideoButton) oldVideoButton.remove();
+    const oldWhitelistButton = menu.querySelector('.detube-whitelist-button');
+    if (oldWhitelistButton) oldWhitelistButton.remove();
 
     const button = document.createElement('yt-list-item-view-model');
     button.className = 'detube-block-button';
@@ -457,7 +502,7 @@
     const vSpan = document.createElement('span');
     vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     vSpan.setAttribute('role', 'text');
-    vSpan.textContent = `  🚧    Block Video`;
+    vSpan.textContent = `  🚧    Block This Video`;
     vTitleWrapper.appendChild(vSpan);
     vTextWrapper.appendChild(vTitleWrapper);
     vLabelDiv.appendChild(vTextWrapper);
@@ -474,6 +519,41 @@
 
     menu.appendChild(vBtn);
     log(`[+] Injected block video button for id "${videoInfo.id}"`);
+
+    // Inject "Whitelist Channel" button
+    const wBtn = document.createElement('yt-list-item-view-model');
+    wBtn.className = 'detube-whitelist-button';
+    wBtn.setAttribute('role', 'menuitem');
+    wBtn.setAttribute('tabindex', '0');
+
+    const wLabelDiv = document.createElement('div');
+    wLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    const wTextWrapper = document.createElement('div');
+    wTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    const wTitleWrapper = document.createElement('div');
+    wTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    const wSpan = document.createElement('span');
+    wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
+    wSpan.setAttribute('role', 'text');
+    wSpan.textContent = `  ⚪    Whitelist ${channel}`;
+    wTitleWrapper.appendChild(wSpan);
+    wTextWrapper.appendChild(wTitleWrapper);
+    wLabelDiv.appendChild(wTextWrapper);
+    wBtn.appendChild(wLabelDiv);
+
+    wBtn.addEventListener('click', () => {
+      whitelisted.add(channel);
+      saveWhitelist();
+      if (whitelistModeEnabled) {
+        // Recompute view when whitelist is active
+        tagEmAll();
+        removeBlockedVideos();
+      }
+      log(`[>] Whitelisted channel: ${channel}`);
+    });
+
+    menu.appendChild(wBtn);
+    log(`[+] Injected whitelist button for "${channel}"`);
   }
 
   function createManagementButton() {
@@ -541,6 +621,15 @@
       <div class="channel-item" data-channel="${channel.replace(/"/g, '&quot;')}">
         <span class="channel-name">${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
         <button class="unblock-btn" onclick="unblockChannel('${channel.replace(/'/g, "\\'")}')">
+          <span>✕</span>
+        </button>
+      </div>
+    `).join('');
+    const whitelistArray = [...whitelisted].sort();
+    const whitelistItems = whitelistArray.map(channel => `
+      <div class="channel-item" data-wchannel="${channel.replace(/"/g, '&quot;')}">
+        <span class="channel-name">${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+        <button class="unblock-btn" onclick="removeFromWhitelist('${channel.replace(/'/g, "\\'")}')">
           <span>✕</span>
         </button>
       </div>
@@ -740,11 +829,23 @@
         }
 
         .controls {
-            padding: 20px;
+            padding: 20px 10px;
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
             justify-content: center;
+        }
+
+        .controls .btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .controls .pattern-row {
+            flex: 1 1 100%;
+            display: flex;
+            gap: 5px;
+            align-items: center;
         }
 
         /* Toggle switch */
@@ -754,7 +855,7 @@
             gap: 10px;
             font-weight: 600;
             font-size: 13px;
-            padding: 10px 16px;
+            padding: 10px 8px;
             border-radius: 25px;
             background: rgba(0,0,0,0.06);
         }
@@ -799,7 +900,7 @@
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 25px;
             cursor: pointer;
             font-weight: 600;
@@ -855,6 +956,12 @@
             border-left: 4px solid #ee5a24;
             max-height: 80px;
             overflow: hidden;
+            animation: detube-appear 220ms ease;
+        }
+
+        @keyframes detube-appear {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: none; }
         }
 
         .channel-item:hover {
@@ -953,57 +1060,78 @@
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
             <button class="btn danger" onclick="clearAll()" ${(blockedArray.length + videosArray.length) === 0 ? 'disabled' : ''}>
-                Clear All (${blockedArray.length + videosArray.length + patternsArray.length})
+                Clear (${blockedArray.length + videosArray.length + patternsArray.length})
             </button>
-            <div class="toggle" title="Toggle blocking of Shorts (persisted)">
+            <div class="toggle" title="Toggle Blocking of Short-Form Content">
               <label class="switch">
                 <input id="shorts-toggle" type="checkbox" ${shortsEnabled ? 'checked' : ''} />
                 <span class="slider"></span>
               </label>
               <span>Block Shorts</span>
             </div>
+            <div class="toggle" title="Toggle Whitelist Mode">
+              <label class="switch">
+                <input id="whitelist-toggle" type="checkbox" ${whitelistModeEnabled ? 'checked' : ''} />
+                <span class="slider"></span>
+              </label>
+              <span>Whitelist Mode</span>
+            </div>
             <button class="btn" onclick="exportData()">Export</button>
             <button class="btn" onclick="triggerImport()">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
-            <div style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
+            ${whitelistModeEnabled ? '' : `
+            <div class="pattern-row" style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
               <input id="pattern-input" type="text" placeholder="Block Video Titles via Regex (JavaScript)" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ccc;">
               <button class="btn" onclick="addPattern()">Add</button>
-            </div>
+            </div>`}
         </div>
 
         <div class="channels-list">
-            <h2 style="padding: 0 20px;">Blocked Channels (${blockedArray.length})</h2>
-            ${blockedArray.length === 0 ? `
-                <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
-                    </svg>
-                    <h3>No blocked channels yet!</h3>
-                    <p>Use the three-dot menu on a video to select "Block Channel"</p>
+            ${whitelistModeEnabled ? `
+              <h2 style=\"padding: 0 20px;\">Whitelist Channels (${whitelistArray.length})</h2>
+              ${whitelistArray.length === 0 ? `
+                  <div class=\"empty-state\">
+                      <svg viewBox=\"0 0 24 24\" fill=\"currentColor\">
+                          <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
+                      </svg>
+                      <h3>No whitelisted channels yet!</h3>
+                      <p>Use the three-dot menu on a video to select \"Whitelist [Channel]\"</p>
+                  </div>
+              ` : whitelistItems}
+            ` : `
+              <h2 style=\"padding: 0 20px;\">Blocked Channels (${blockedArray.length})</h2>
+              ${blockedArray.length === 0 ? `
+                  <div class=\"empty-state\">
+                      <svg viewBox=\"0 0 24 24\" fill=\"currentColor\">
+                          <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
+                      </svg>
+                      <h3>No blocked channels yet!</h3>
+                      <p>Use the three-dot menu on a video to select \"Block Channel\"</p>
+                  </div>
+              ` : channelItems}
+              <hr style=\"margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);\" />
+              <h2 style=\"padding: 0 20px;\">Blocked Videos (${videosArray.length})</h2>
+              ${videosArray.length === 0 ? `
+                  <div class=\"empty-state\">
+                      <svg viewBox=\"0 0 24 24\" fill=\"currentColor\">
+                          <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
+                      </svg>
+                      <h3>No blocked videos yet!</h3>
+                      <p>Use the three-dot menu on a video to select \"Block Video\"</p>
+                  </div>
+              ` : videoItems}
+              <hr style=\"margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);\" />
+              <h2 style=\"padding: 0 20px;\">Blocked Title Patterns (${patternsArray.length})</h2>
+              ${patternsArray.length === 0 ? `
+                <div class=\"empty-state\">
+                  <svg viewBox=\"0 0 24 24\" fill=\"currentColor\">
+                    <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
+                  </svg>
+                  <h3>No title patterns yet!</h3>
+                  <p>Enter a regex above to block matching titles</p>
                 </div>
-            ` : channelItems}
-            <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);" />
-            <h2 style="padding: 0 20px;">Blocked Videos (${videosArray.length})</h2>
-            ${videosArray.length === 0 ? `
-                <div class="empty-state">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
-                    </svg>
-                    <h3>No blocked videos yet!</h3>
-                    <p>Use the three-dot menu on a video to select "Block Video"</p>
-                </div>
-            ` : videoItems}
-            <hr style="margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);" />
-            <h2 style="padding: 0 20px;">Blocked Title Patterns (${patternsArray.length})</h2>
-            ${patternsArray.length === 0 ? `
-              <div class="empty-state">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z"/>
-                </svg>
-                <h3>No title patterns yet!</h3>
-                <p>Enter a regex above to block matching titles</p>
-              </div>
-            ` : patternItems}
+              ` : patternItems}
+            `}
         </div>
     </div>
 
@@ -1073,13 +1201,29 @@
             }, totalAnimMs);
         }
 
+        function clearAllWhitelist() {
+            if (!confirm('Are you sure you want to clear all ${whitelistArray.length} whitelisted channels? This cannot be undone.')) return;
+            const items = Array.from(document.querySelectorAll('.channel-item'));
+            if (items.length === 0) {
+                window.name = JSON.stringify({ action: 'clearAllWhitelist' });
+                return;
+            }
+            items.forEach((el, i) => setTimeout(() => el.classList.add('removing'), i * 25));
+            const totalAnimMs = 300 + items.length * 25;
+            setTimeout(() => {
+                window.name = JSON.stringify({ action: 'clearAllWhitelist' });
+                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
+            }, totalAnimMs);
+        }
+
         function exportData() {
           try {
             const payload = {
-              version: 'detube-export-2',
+              version: 'detube-export',
               blockedNames: ${JSON.stringify(blockedArray)},
               blockedVideos: ${JSON.stringify(blockedVideos)},
-              blockedTitlePatterns: ${JSON.stringify(patternsArray)}
+              blockedTitlePatterns: ${JSON.stringify(patternsArray)},
+              whitelisted: ${JSON.stringify(whitelistArray)}
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1112,15 +1256,17 @@
                 let names = [];
                 let videos = {};
                 let patterns = [];
+                let whitelist = [];
                 if (Array.isArray(data)) {
                   names = data;
                 } else if (data && typeof data === 'object') {
                   if (Array.isArray(data.blockedNames)) names = data.blockedNames;
                   if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
                   if (Array.isArray(data.blockedTitlePatterns)) patterns = data.blockedTitlePatterns.filter(p => typeof p === 'string');
+                  if (Array.isArray(data.whitelisted)) whitelist = data.whitelisted.filter(x => typeof x === 'string');
                 }
                 if (!Array.isArray(names)) throw new Error('Invalid format for channels');
-                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos, blockedTitlePatterns: patterns } });
+                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos, blockedTitlePatterns: patterns, whitelisted: whitelist } });
                 // Ask parent to rebuild UI
                 try { refreshPage(); } catch(_) {}
               } catch (e) {
@@ -1132,12 +1278,18 @@
           input.click();
         }
 
-        // Shorts toggle handling
+        // Shorts + Whitelist toggle handling
         document.addEventListener('DOMContentLoaded', () => {
             const t = document.getElementById('shorts-toggle');
             if (t) {
                 t.addEventListener('change', () => {
                     window.name = JSON.stringify({ action: 'toggleShorts', enabled: t.checked });
+                });
+            }
+            const w = document.getElementById('whitelist-toggle');
+            if (w) {
+                w.addEventListener('change', () => {
+                    window.name = JSON.stringify({ action: 'toggleWhitelist', enabled: w.checked });
                 });
             }
         });
@@ -1174,6 +1326,24 @@
           } else {
             finish();
           }
+        }
+
+        function removeFromWhitelist(channelName) {
+            if (!confirm('Remove "' + channelName + '" from whitelist?')) return;
+            const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
+            const finish = () => {
+                window.name = JSON.stringify({ action: 'removeFromWhitelist', channel: channelName });
+                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
+            };
+            if (item) {
+                let done = false;
+                const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
+                item.addEventListener('transitionend', onEnd);
+                setTimeout(onEnd, 400);
+                requestAnimationFrame(() => item.classList.add('removing'));
+            } else {
+                finish();
+            }
         }
     </script>
   </body>
@@ -1229,6 +1399,13 @@
                 if (!vid || typeof vid !== 'string') continue;
                 if (!blockedVideos[vid]) { blockedVideos[vid] = String(title || vid); vAdded++; }
               }
+              // Merge whitelisted channels
+              const wlist = Array.isArray(action.data.whitelisted) ? action.data.whitelisted.filter(x => typeof x === 'string') : [];
+              let wAdded = 0, wDupes = 0;
+              for (const w of wlist) {
+                if (whitelisted.has(w)) { wDupes++; continue; }
+                whitelisted.add(w); wAdded++;
+              }
               // Merge title patterns
               const pats = Array.isArray(action.data.blockedTitlePatterns) ? action.data.blockedTitlePatterns.filter(p => typeof p === 'string') : [];
               let pAdded = 0, pDupes = 0;
@@ -1237,11 +1414,12 @@
               }
               saveBlocked();
               saveBlockedVideos();
+              saveWhitelist();
               saveBlockedTitlePatterns();
               applyCSS();
               tagEmAll();
               removeBlockedVideos();
-              log(`[>] Import merged: +${added} channels (+${vAdded} videos, +${pAdded} patterns), dupes ${duplicates} (patterns dupes ${pDupes}), invalid ${invalid}`);
+              log(`[>] Import merged: +${added} channels, +${vAdded} videos, +${pAdded} patterns, +${wAdded} whitelisted; dupes channels ${duplicates}, patterns ${pDupes}, whitelist ${wDupes}; invalid ${invalid}`);
             } catch (e) {
               log('Import error:', e);
             }
@@ -1259,6 +1437,13 @@
             removeBlockedVideos();
             log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear action again
+          } else if (action.action === 'clearAllWhitelist') {
+            whitelisted.clear();
+            saveWhitelist();
+            tagEmAll();
+            removeBlockedVideos();
+            log('[>] Cleared whitelist');
+            newTab.window.name = '';
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
             const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML()], { type: 'text/html' }));
@@ -1271,6 +1456,16 @@
             setupShortsBlocking(shortsEnabled);
             log(`[>] Shorts blocking: ${shortsEnabled ? 'ENABLED' : 'DISABLED'}`);
             newTab.window.name = '';
+          } else if (action.action === 'toggleWhitelist') {
+            whitelistModeEnabled = !!action.enabled;
+            saveWhitelistMode();
+            // Recompute filtering and CSS
+            applyCSS();
+            tagEmAll();
+            removeBlockedVideos();
+            log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
+            // Ask manager page to refresh so the correct list and controls are shown
+            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'addPattern' && action.pattern) {
             if (!blockedTitlePatterns.includes(action.pattern)) {
               blockedTitlePatterns.push(action.pattern);
@@ -1278,12 +1473,20 @@
               removeBlockedVideos();
               log(`[>] Added title pattern: ${action.pattern}`);
             }
-            newTab.window.name = '';
+            // Refresh manager to show the newly added pattern (and allow any UI animation)
+            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'removePattern' && action.pattern) {
             blockedTitlePatterns = blockedTitlePatterns.filter(p => p !== action.pattern);
             saveBlockedTitlePatterns();
             removeBlockedVideos();
             log(`[>] Removed title pattern: ${action.pattern}`);
+            newTab.window.name = '';
+          } else if (action.action === 'removeFromWhitelist' && action.channel) {
+            whitelisted.delete(action.channel);
+            saveWhitelist();
+            tagEmAll();
+            removeBlockedVideos();
+            log(`[>] Removed from whitelist: ${action.channel}`);
             newTab.window.name = '';
           }
         }
@@ -1324,14 +1527,10 @@
 
   }
 
-  // Run on "(...).transpose()" clicks
-  document.body.addEventListener('click', e => {
-    const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
-    if (!dot) return;
-
-    const renderer = dot.closest('yt-lockup-view-model');
+  // Handler for three-dot menu clicks
+  const handleThreeDotClick = (renderer) => {
     if (!renderer) return;
-
+    
     // Re-tag renderer with fresh channel name
     if (tagVideo(renderer)) {
       lastRenderer = renderer;
@@ -1339,6 +1538,28 @@
     } else {
       log('Could not tag renderer.');
     }
+  };
+
+  // Handle clicks on the original three-dot menu button
+  document.body.addEventListener('click', e => {
+    const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
+    if (!dot) return;
+
+    const renderer = dot.closest('yt-lockup-view-model');
+    handleThreeDotClick(renderer);
+  }, true);
+
+  // Handle clicks on the new three-dot menu button
+  document.body.addEventListener('click', e => {
+    const button = e.target.closest('button.style-scope.yt-icon-button');
+    if (!button) return;
+    
+    // Check if this is a three-dot menu button by its icon
+    const icon = button.querySelector('yt-icon');
+    if (!icon || !icon.getAttribute('icon')?.includes('more_vert')) return;
+    
+    const renderer = button.closest('yt-lockup-view-model');
+    handleThreeDotClick(renderer);
   }, true);
 
   (async () => {
@@ -1346,6 +1567,8 @@
     await loadBlockedVideos();
     await loadShortsSetting();
     await loadBlockedTitlePatterns();
+    await loadWhitelist();
+    await loadWhitelistMode();
 
     tagEmAll();
     removeBlockedVideos();
