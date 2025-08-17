@@ -10,7 +10,7 @@ If you click this menu, you will be shown three additional options:
 
 - Hide the videos of entire channels with the `🚫 Block [Channel Name]` option
 - Hide just a specific video with the `🚧 Block This Video` option
-- Add a channel to a whitelist; when you toggle whitelist mode, only whitelisted channels will have their videos remain in the suggested videos feed
+- Add a channel to a whitelist with the `⚪ Whitelist [Channel Name]` option; when you toggle whitelist mode, only whitelisted channels will have their videos remain in the suggested videos feed
 - In the top right corner of the page, a `🚫` icon appears, leading to the blocker's management page
 
 ## Why use it?
