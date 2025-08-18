@@ -88,5 +88,5 @@ You can learn about regex patterns in more detail [here](https://developer.mozil
 
 ## License
 
-This project is free to use under the **MIT License**.<br>
-Follow and adhere to YouTube's Terms of Service.
+This project is free to use under the **MIT License**. It is provided "as is", with no warranty of any kind.<br>
+**Use at your own risk.** You are responsible for compliance with YT's Terms of Service and applicable laws.
