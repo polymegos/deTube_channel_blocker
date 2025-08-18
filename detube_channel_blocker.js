@@ -22,30 +22,31 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.4
-// @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YouTube video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
-// @description:de  Fügt YouTube‑Videomenüs die Optionen „Kanal blockieren“, „Video blockieren“ und „Kanal auf Whitelist setzen“ hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Unterstützt auch Shorts.
-// @description:es  Agrega al menú de videos de YouTube las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También es compatible con Shorts.
-// @description:fr  Ajoute aux menus vidéo de YouTube les options « Bloquer la chaîne », « Bloquer la vidéo » et « Autoriser la chaîne (whitelist) ». Masque automatiquement les contenus des chaînes et vidéos bloquées. Prend aussi en charge les Shorts.
-// @description:it  Aggiunge ai menu dei video di YouTube le opzioni “Blocca canale”, “Blocca video” e “Inserisci canale nella whitelist”. Nasconde automaticamente i video di canali o video bloccati. Supporta anche i Shorts.
-// @description:pt  Adiciona ao menu de vídeos do YouTube as opções “Bloquear canal”, “Bloquear vídeo” e “Colocar canal na lista branca”. Oculta automaticamente vídeos de canais bloqueados e vídeos bloqueados. Suporta também Shorts.
-// @description:ru  Добавляет в меню видео на YouTube опции «Заблокировать канал», «Заблокировать видео» и «Добавить канал в белый список». Автоматически скрывает видео из заблокированных каналов и отдельных видео. Поддерживает Shorts.
-// @description:ja  YouTubeの動画メニューに「チャンネルをブロック」「動画をブロック」「チャンネルをホワイトリストに登録」オプションを追加します。ブロックされたチャンネルや動画を自動的に非表示にします。Shortsにも対応。
-// @description:ko  YouTube 비디오 메뉴에 “채널 차단”, “동영상 차단”, “화이트리스트 채널 추가” 옵션을 추가합니다. 차단된 채널과 동영상을 자동으로 숨깁니다. Shorts도 지원합니다.
-// @description:zh-CN  在 YouTube 视频菜单中添加“屏蔽频道”“屏蔽视频”和“将频道加入白名单”选项。自动隐藏来自被屏蔽频道或被屏蔽视频的内容。同时支持 Shorts。
-// @description:zh-TW  在 YouTube 影片選單中新增“封鎖頻道”、“封鎖影片”與“將頻道加入白名單”選項。自動隱藏被封鎖頻道或影片的內容，並支援 Shorts。
-// @description:nl  Voegt de opties “Kanaal blokkeren”, “Video blokkeren” en “Kanaal op de witte lijst zetten” toe aan YouTube‑videomenu’s. Verbergt automatisch video’s van geblokkeerde kanalen en geblokkeerde video’s. Shorts worden ook ondersteund.
-// @description:pl  Dodaje do menu wideo YouTube opcje „Zablokuj kanał”, „Zablokuj wideo” i „Dodaj kanał do białej listy”. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze zablokowane filmy. Obsługuje także Shorts.
-// @description:sv  Lägger till alternativen “Blockera kanal”, “Blockera video” och “Vitlista kanal” i YouTubes videomenyer. Dölj automatiskt videor från blockerade kanaler och blockerade videor. Stödjer även Shorts.
-// @description:da  Tilføjer mulighederne “Bloker kanal”, “Bloker video” og “Whitelist kanal” til YouTubes videomenuer. Skjuler automatisk videoer fra blokerede kanaler og blokerede videoer. Understøtter også Shorts.
-// @description:no  Legger til alternativene “Blokker kanal”, “Blokker video” og “Whiteliste kanal” i YouTube‑videomenyer. Skjuler automatisk videoer fra blokkerte kanaler og blokkerte videoer. Støtter også Shorts.
-// @description:fi  Lisää YouTube‑videovalikoihin vaihtoehdot “Estä kanava”, “Estä video” ja “Lisää kanava valkoiselle listalle”. Piilottaa automaattisesti estettyjen kanavien ja videoiden sisällöt. Tukee myös Shorts‑sisältöä.
-// @description:tr  YouTube video menülerine “Kanalı Engelle”, “Videoyu Engelle” ve “Kanalı Beyaz Listeye Ekle” seçeneklerini ekler. Engellenen kanalların içeriklerini ve engellenen videoları otomatik olarak gizler. Shorts desteği de sunar.
-// @description:ar  يضيف إلى قوائم فيديو يوتيوب خيارات "حظر القناة" و"حظر الفيديو" و"إضافة القناة إلى القائمة البيضاء". يخفي تلقائيًا مقاطع الفيديو من القنوات المحظورة والفيديوهات المحظورة. كما يدعم Shorts.
-// @description:he  מוסיף לתפריטי הווידאו של YouTube את האפשרויות "חסום ערוץ", "חסום סרטון" ו"הוסף ערוץ לרשימה לבנה". מסתיר באופן אוטומטי סרטונים מערוצים חסומים וסרטונים חסומים. תומך גם ב‑Shorts.
-// @description:hi  YouTube वीडियो मेनू में “चैनल ब्लॉक करें”, “वीडियो ब्लॉक करें” और “चैनल को व्हाइटलिस्ट में जोड़ें” विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। Shorts का भी समर्थन करता है।
-// @description:th  เพิ่มตัวเลือก “บล็อกช่อง”, “บล็อกวิดีโอ” และ “เพิ่มช่องในรายการที่ไวท์ลิสต์” ในเมนูวิดีโอของ YouTube ซ่อนวิดีโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ รองรับ Shorts ด้วย.
-// @description:vi  Thêm tùy chọn "Chặn kênh", "Chặn video" và "Thêm kênh vào danh sách trắng" vào menu video của YouTube. Tự động ẩn video từ các kênh bị chặn và video bị chặn. Hỗ trợ cả Shorts.
+// @version         0.1.5
+// @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
+// @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
+// @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
+// @description:fr  Ajoute aux menus vidéo de YT les options « Bloquer la chaîne », « Bloquer la vidéo » et « Mettre la chaîne en liste blanche ». Masque automatiquement les contenus des chaînes et vidéos bloquées. Bloque aussi les Shorts.
+// @description:it  Aggiunge ai menu dei video di YT le opzioni “Blocca canale”, “Blocca video” e “Inserisci canale nella whitelist”. Nasconde automaticamente i video da canali o video bloccati. Blocca anche i Shorts.
+// @description:pt  Adiciona ao menu de vídeos do YT as opções “Bloquear canal”, “Bloquear vídeo” e “Colocar canal na lista branca”. Oculta automaticamente vídeos de canais e vídeos bloqueados. Também bloqueia os Shorts.
+// @description:ru  Добавляет в меню видео на YT опции «Заблокировать канал», «Заблокировать видео» и «Добавить канал в белый список». Автоматически скрывает видео из заблокированных каналов и отдельных видео. Также блокирует Shorts.
+// @description:ja  YTの動画メニューに「チャンネルをブロック」「動画をブロック」「チャンネルをホワイトリストに登録」オプションを追加します。ブロックされたチャンネルや動画を自動的に非表示にします。Shortsもブロックします。
+// @description:ko  YT 비디오 메뉴에 “채널 차단”, “동영상 차단”, “화이트리스트 채널 추가” 옵션을 추가합니다. 차단된 채널과 동영상을 자동으로 숨깁니다. Shorts도 차단합니다.
+// @description:zh-CN  在 YT 视频菜单中添加“屏蔽频道”“屏蔽视频”和“将频道加入白名单”选项。自动隐藏来自被屏蔽频道和被屏蔽视频的内容。同时也屏蔽 Shorts。
+// @description:zh-TW  在 YT 影片選單中新增“封鎖頻道”、“封鎖影片”與“將頻道加入白名單”選項。自動隱藏被封鎖頻道或影片的內容，並同時封鎖 Shorts。
+// @description:nl  Voegt de opties “Kanaal blokkeren”, “Video blokkeren” en “Kanaal op de witte lijst zetten” toe aan YT‑videomenu’s. Verbergt automatisch video’s van geblokkeerde kanalen en geblokkeerde video’s. Blokkeert ook Shorts.
+// @description:de  Fügt YT‑Videomenüs die Optionen „Kanal blockieren“, „Video blockieren“ und „Kanal auf Whitelist setzen“ hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Unterstützt auch Shorts.
+// @description:pl  Dodaje do menu wideo YT opcje „Zablokuj kanał”, „Zablokuj wideo” i „Dodaj kanał do białej listy”. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze zablokowane filmy. Blokuje także Shorts.
+// @description:sv  Lägger till alternativen “Blockera kanal”, “Blockera video” och “Vitlista kanal” i YTs videomenyer. Dölj automatiskt videor från blockerade kanaler och blockerade videor. Blockerar även Shorts.
+// @description:da  Tilføjer mulighederne “Bloker kanal”, “Bloker video” og “Whitelist kanal” til YTs videomenuer. Skjuler automatisk videoer fra blokerede kanaler og blokerede videoer. Blokerer også Shorts.
+// @description:no  Legger til alternativene “Blokker kanal”, “Blokker video” og “Whitelist kanal” i YT‑videomenyer. Skjuler automatisk videoer fra blokkerte kanaler og blokkerte videoer. Blokkerer også Shorts.
+// @description:fi  Lisää YT‑videovalikoihin vaihtoehdot “Estä kanava”, “Estä video” ja “Lisää kanava valkoiselle listalle”. Piilottaa automaattisesti estettyjen kanavien ja videoiden sisällöt. Estää myös Shorts.
+// @description:tr  YT video menülerine “Kanalı Engelle”, “Videoyu Engelle” ve “Kanalı Beyaz Listeye Ekle” seçeneklerini ekler. Engellenen kanalların ve videoların içeriklerini otomatik olarak gizler. Ayrıca Shorts’ları da engeller.
+// @description:ar  يضيف إلى قوائم فيديو يوتيوب خيارات "حظر القناة" و"حظر الفيديو" و"إضافة القناة إلى القائمة البيضاء". يخفي تلقائيًا مقاطع الفيديو من القنوات المحظورة والفيديوهات المحظورة. كما يحظر Shorts أيضًا.
+// @description:he  מוסיף לתפריטי הווידאו של YT את האפשרויות "חסום ערוץ", "חסום סרטון" ו"הוסף ערוץ לרשימה לבנה". מסתיר באופן אוטומטי סרטונים מערוצים חסומים וסרטונים חסומים. וגם חוסם Shorts.
+// @description:hi  YT वीडियो मेनू में “चैनल ब्लॉक करें”, “वीडियो ब्लॉक करें” और “चैनल को व्हाइटलिस्ट में जोड़ें” विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। Shorts को भी ब्लॉक करता है।
+// @description:th  เพิ่มตัวเลือก “บล็อกช่อง”, “บล็อกวิดีโอ” และ “เพิ่มช่องในรายการที่ไวท์ลิสต์” ในเมนูวิดีโอของ YT ซ่อนวิดโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ และบล็อก Shorts ด้วย.
+// @description:vi  Thêm tùy chọn "Chặn kênh", "Chặn video" và "Thêm kênh vào danh sách trắng" vào menu video của YT. Tự động ẩn video từ các kênh bị chặn và các video bị chặn. Cũng chặn cả Shorts.
 // @author          polymegos
 // @namespace       https://github.com/polymegos/deTube_channel_blocker
 // @supportURL      https://github.com/polymegos/deTube_channel_blocker/issues
@@ -74,7 +75,7 @@
   const WHITELIST_STORAGE_KEY = 'detube_whitelist_channels_store';
   let whitelisted = new Set();
   const WHITELIST_MODE_STORAGE_KEY = 'detube_whitelist_mode_enabled';
-  let whitelistModeEnabled = false; // hard off by default
+  let whitelistModeEnabled = false;
 
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
@@ -427,8 +428,53 @@
           log('[!] Menu opened but no channel found on lastRenderer.');
         }
       }
+
+      // Also handle search results popup menu structure
+      const popupList = document.querySelector('ytd-menu-popup-renderer tp-yt-paper-listbox');
+      if (popupList && lastRenderer) {
+        // Re-tag and inject for search results menu
+        tagVideo(lastRenderer);
+        const channel = lastRenderer.dataset.detube;
+        const rendererRef = lastRenderer;
+        if (channel) {
+          // Defer and retry briefly to allow YouTube to finish rendering items
+          scheduleSearchMenuInjection(channel, rendererRef);
+        } else {
+          log('[!] Search menu opened but no channel found on lastRenderer.');
+        }
+      }
     });
     observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Retry helper to wait for popup items to render before injection
+  function scheduleSearchMenuInjection(channel, renderer) {
+    let tries = 0;
+    const maxTries = 10; // ~500ms total with 50ms spacing
+    const attempt = () => {
+      const list = getOpenPopupList();
+      const ready = list && (list.querySelector('ytd-menu-service-item-renderer') || tries >= maxTries);
+      if (ready) {
+        injectSearchMenuButtons(channel, renderer);
+        lastRenderer = null;
+      } else if (tries < maxTries) {
+        tries++;
+        setTimeout(attempt, 50);
+      }
+    };
+    // Start after a frame
+    requestAnimationFrame(attempt);
+  }
+
+  function getOpenPopupList() {
+    const lists = Array.from(document.querySelectorAll('ytd-menu-popup-renderer tp-yt-paper-listbox'));
+    for (const list of lists) {
+      const dropdown = list.closest('tp-yt-iron-dropdown');
+      if (dropdown && (dropdown.hasAttribute('opened') || dropdown.style.display !== 'none')) return list;
+      const rect = list.getBoundingClientRect && list.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) return list;
+    }
+    return null;
   }
 
   function injectButton(channel) {
@@ -463,7 +509,7 @@
     const span = document.createElement('span');
     span.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     span.setAttribute('role', 'text');
-    span.textContent = `  🚫    Block ${channel}`; // This is hilarious
+    span.textContent = ` 🚫    Block ${channel}`; // This is hilarious
 
     titleWrapper.appendChild(span);
     textWrapper.appendChild(titleWrapper);
@@ -502,7 +548,7 @@
     const vSpan = document.createElement('span');
     vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     vSpan.setAttribute('role', 'text');
-    vSpan.textContent = `  🚧    Block This Video`;
+    vSpan.textContent = ` 🚧    Block This Video`;
     vTitleWrapper.appendChild(vSpan);
     vTextWrapper.appendChild(vTitleWrapper);
     vLabelDiv.appendChild(vTextWrapper);
@@ -535,7 +581,7 @@
     const wSpan = document.createElement('span');
     wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     wSpan.setAttribute('role', 'text');
-    wSpan.textContent = `  ⚪    Whitelist ${channel}`;
+    wSpan.textContent = ` ⚪    Whitelist ${channel}`;
     wTitleWrapper.appendChild(wSpan);
     wTextWrapper.appendChild(wTitleWrapper);
     wLabelDiv.appendChild(wTextWrapper);
@@ -554,6 +600,151 @@
 
     menu.appendChild(wBtn);
     log(`[+] Injected whitelist button for "${channel}"`);
+  }
+
+  // Inject items into the search results popup menu (tp-yt-paper-listbox)
+  function injectSearchMenuButtons(channel, renderer) {
+    const list = getOpenPopupList();
+    if (!list) {
+      log('[!] Search popup listbox not found for injection');
+      return;
+    }
+
+    // Clean previously injected items (idempotent)
+    list.querySelectorAll('.detube-menu-item').forEach(el => el.remove());
+
+    // Build a plain paper item for robust rendering inside the popup
+    const createPaperItem = (label, onClick, kind) => {
+      // Host wrapper like native items
+      const host = document.createElement('ytd-menu-service-item-renderer');
+      host.className = 'style-scope ytd-menu-popup-renderer detube-menu-item';
+      try { host.dataset.detubeLabel = label; } catch(_) {}
+      try { if (kind) host.dataset.detubeKind = kind; } catch(_) {}
+
+      const paper = document.createElement('tp-yt-paper-item');
+      paper.className = 'style-scope ytd-menu-service-item-renderer';
+      paper.setAttribute('role', 'option');
+      paper.setAttribute('tabindex', '0');
+      paper.setAttribute('aria-disabled', 'false');
+      paper.setAttribute('style-target', 'host');
+      // Ensure visible sizing even if YouTube styles change
+      paper.style.minHeight = '40px';
+      paper.style.display = 'flex';
+      paper.style.alignItems = 'center';
+      paper.style.padding = '0 16px';
+      paper.style.cursor = 'pointer';
+      try { paper.setAttribute('aria-label', label); } catch(_) {}
+
+      const text = document.createElement('yt-formatted-string');
+      text.id = 'label';
+      text.className = 'style-scope ytd-menu-service-item-renderer';
+      text.textContent = label;
+      try { text.removeAttribute('is-empty'); } catch(_) {}
+      paper.appendChild(text);
+
+      const handler = (ev) => {
+        ev.stopPropagation();
+        try { onClick(); } catch(_) {}
+        // Try to close the popup after action
+        try {
+          const dropdown = host.closest('tp-yt-iron-dropdown');
+          if (dropdown && typeof dropdown.close === 'function') {
+            dropdown.close();
+          } else if (dropdown) {
+            // Simulate Escape to close
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+          }
+        } catch(_) {}
+      };
+      paper.addEventListener('click', handler);
+      host.addEventListener('click', handler);
+      host.appendChild(paper);
+      return host;
+    };
+
+    // Resolve video info once, tied to provided renderer (fallback to global)
+    const ref = renderer || lastRenderer;
+    const videoInfo = ref ? getVideoInfo(ref) : { id: '', title: '' };
+
+    // Block Channel
+    const blockChannelItem = createPaperItem(`🚫  Block ${channel}`, () => {
+      blocked.add(channel);
+      saveBlocked();
+      applyCSS();
+      tagEmAll();
+      log(`[>] Blocked channel: ${channel}`);
+    }, 'blockChannel');
+
+    // Block This Video (if id available)
+    let blockVideoItem = null;
+    if (videoInfo.id) {
+      blockVideoItem = createPaperItem('🚧  Block This Video', () => {
+        const id = videoInfo.id;
+        const title = videoInfo.title || id;
+        blockedVideos[id] = title;
+        saveBlockedVideos();
+        removeBlockedVideos();
+        log(`[>] Blocked video: ${title} (${id})`);
+      }, 'blockVideo');
+    } else {
+      log('[!] Could not determine video id for Block Video (search)');
+    }
+
+    // Whitelist Channel
+    const whitelistItem = createPaperItem(`⚪  Whitelist ${channel}`, () => {
+      whitelisted.add(channel);
+      saveWhitelist();
+      if (whitelistModeEnabled) {
+        tagEmAll();
+        removeBlockedVideos();
+      }
+      log(`[>] Whitelisted channel: ${channel}`);
+    }, 'whitelist');
+
+    // Append to listbox (keep order consistent with other menus)
+    list.appendChild(blockChannelItem);
+    if (blockVideoItem) list.appendChild(blockVideoItem);
+    list.appendChild(whitelistItem);
+
+    // Late hydration of labels to ensure they render after YT icons set up
+    scheduleSearchMenuLabelHydration(list);
+
+    log(`[+] Injected search menu buttons for "${channel}"`);
+  }
+
+  function hydrateDetubeSearchMenuLabels(list) {
+    try {
+      const items = list.querySelectorAll('ytd-menu-service-item-renderer.detube-menu-item');
+      items.forEach(host => {
+        const desired = host.dataset && host.dataset.detubeLabel ? String(host.dataset.detubeLabel) : '';
+        const paper = host.querySelector('tp-yt-paper-item') || host;
+        let labelEl = host.querySelector('yt-formatted-string#label') || host.querySelector('yt-formatted-string');
+        if (!labelEl) {
+          labelEl = document.createElement('yt-formatted-string');
+          labelEl.id = 'label';
+          labelEl.className = 'style-scope ytd-menu-service-item-renderer';
+          paper.appendChild(labelEl);
+        }
+        if (desired) labelEl.textContent = desired;
+        try { labelEl.removeAttribute('is-empty'); } catch(_) {}
+        try { paper.setAttribute('aria-label', desired || labelEl.textContent || ''); } catch(_) {}
+      });
+    } catch(_) {}
+  }
+
+  function scheduleSearchMenuLabelHydration(list) {
+    let tries = 0;
+    const maxTries = 12; // ~600ms
+    const attempt = () => {
+      const iconReady = list.querySelector('span.yt-icon-shape.style-scope.yt-icon.yt-spec-icon-shape') || list.querySelector('yt-icon');
+      if (iconReady || tries >= maxTries) {
+        hydrateDetubeSearchMenuLabels(list);
+      } else {
+        tries++;
+        setTimeout(attempt, 50);
+      }
+    };
+    requestAnimationFrame(attempt);
   }
 
   function createManagementButton() {
@@ -1133,6 +1324,10 @@
               ` : patternItems}
             `}
         </div>
+        <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
+          <span>deTube Blocker 0.1.5</span>
+          <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet" target="_blank" style="color: inherit; text-decoration: none;">Learn About Regex</a></span>
+        </div>
     </div>
 
     <script>
@@ -1544,9 +1739,15 @@
   document.body.addEventListener('click', e => {
     const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
     if (!dot) return;
-
-    const renderer = dot.closest('yt-lockup-view-model');
+    const renderer = dot.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
     handleThreeDotClick(renderer);
+    // Proactively schedule search popup injection
+    try {
+      if (renderer && tagVideo(renderer)) {
+        const ch = renderer.dataset.detube;
+        if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
+      }
+    } catch(_) {}
   }, true);
 
   // Handle clicks on the new three-dot menu button
@@ -1554,12 +1755,22 @@
     const button = e.target.closest('button.style-scope.yt-icon-button');
     if (!button) return;
     
-    // Check if this is a three-dot menu button by its icon
+    // Check if this is a three-dot menu button by its icon or by being inside ytd-menu-renderer
+    let isThreeDot = false;
     const icon = button.querySelector('yt-icon');
-    if (!icon || !icon.getAttribute('icon')?.includes('more_vert')) return;
+    if (icon && icon.getAttribute('icon')?.includes('more_vert')) isThreeDot = true;
+    if (!isThreeDot && button.id === 'button' && button.closest('ytd-menu-renderer')) isThreeDot = true;
+    if (!isThreeDot) return;
     
-    const renderer = button.closest('yt-lockup-view-model');
+    const renderer = button.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
     handleThreeDotClick(renderer);
+    // Proactively schedule search popup injection
+    try {
+      if (renderer && tagVideo(renderer)) {
+        const ch = renderer.dataset.detube;
+        if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
+      }
+    } catch(_) {}
   }, true);
 
   (async () => {
