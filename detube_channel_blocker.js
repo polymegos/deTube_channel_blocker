@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.5
+// @version         0.1.6 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -66,6 +66,8 @@
 (function() {
   'use strict';
 
+  const version = '0.1.6 Dev';
+
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
   let blocked = new Set();
@@ -93,7 +95,71 @@
 
   const log = (...a) => console.log('%c[deTube Block Channels]', 'color: green; font-weight: bold;', ...a);
 
-  async function loadBlocked() {
+  const SHORTS_BLOCK_SELECTORS = [
+    // Block shorts if user toggled
+    'ytd-reel-shelf-renderer',
+    'grid-shelf-view-model.ytGridShelfViewModelHost',
+    'a[title="Shorts"]',
+    'div#dismissible.style-scope.ytd-rich-shelf-renderer'
+  ];
+
+  const CHANNEL_BLOCK_SELECTORS = [
+    // Generic
+    '#channel-name a',
+    'ytd-channel-name a',
+    'a[href*="/@"]',
+    'a[href*="/channel/"]',
+    'a[href*="/c/"]',
+    'a[href*="/user/"]',
+    // Sidebars
+    '.yt-lockup-byline a',
+    '.yt-lockup-metadata-view-model-wiz__title a',
+    'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
+    // Homepage
+    '.yt-lockup-metadata-view-model-wiz__metadata .yt-core-attributed-string__link',
+    '.yt-content-metadata-view-model-wiz__metadata-row .yt-core-attributed-string__link',
+    // Search
+    '#text-container a.yt-simple-endpoint.style-scope.yt-formatted-string',
+    // Fallbacks
+    'yt-formatted-string a',
+    'yt-formatted-string',
+    '.yt-lockup-metadata-view-model-wiz__title',
+    '.yt-lockup-metadata-view-model-wiz',
+  ];
+
+  const TITLE_SELECTORS = [
+    // Video title selectors
+    'a#video-title',
+    'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+    '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
+    'span.yt-core-attributed-string[role="text"]',
+    'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+    'yt-formatted-string#video-title',
+    'yt-formatted-string[id="video-title"]',
+    'yt-formatted-string[class="style-scope ytd-video-renderer"]',
+    'a#video-title-link span.yt-core-attributed-string',
+  ];
+
+  const VIDEO_SELECTORS = [
+    // Distinct video elements selectors
+    'yt-lockup-view-model',
+    'ytd-grid-video-renderer',
+    'ytd-video-renderer',
+    'ytd-compact-video-renderer',
+    'ytd-rich-item-renderer'
+  ].join(',');
+
+  const BASE_TARGETS = [
+    'yt-lockup-view-model',
+    'ytd-video-renderer',
+    'ytd-compact-video-renderer',
+    'ytd-grid-video-renderer',
+    'ytd-rich-item-renderer'
+  ];
+
+  let detubeStyleElement = null;
+
+  async function loadBlockedChannels() {
     // Load blocked channels map
     const raw = await GM_getValue(STORAGE_KEY, '[]');
     try { 
@@ -113,13 +179,7 @@
       whitelisted = new Set();
       log('Load-error whitelist', e);
     }
-  }
-
-  async function saveWhitelist() {
-    await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
-  }
-
-  async function loadWhitelistMode() {
+    // Load whitelist mode setting
     try {
       const raw = await GM_getValue(WHITELIST_MODE_STORAGE_KEY, 'false');
       whitelistModeEnabled = String(raw) === 'true';
@@ -127,6 +187,10 @@
       whitelistModeEnabled = false;
       log('Load-error whitelist mode', e);
     }
+  }
+
+  async function saveWhitelist() {
+    await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
   }
 
   async function saveWhitelistMode() {
@@ -163,22 +227,10 @@
     }
   }
 
-  // Block shorts if user toggled
-  const SHORTS_BLOCK_SELECTORS = [
-    'ytd-reel-shelf-renderer',
-    'grid-shelf-view-model.ytGridShelfViewModelHost',
-    'a[title="Shorts"]',
-    'div#dismissible.style-scope.ytd-rich-shelf-renderer'
-  ];
-
   function redirectIfShortsURL(url) {
-    const shortsRegex = /^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/;
-    const match = url.match(shortsRegex);
+    const match = url.match(/^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/);
     if (match) {
-      const videoId = match[1];
-      const query = window.location.search || '';
-      const newUrl = `https://www.youtube.com/watch?v=${videoId}${query}`;
-      window.location.replace(newUrl);
+      window.location.replace(`https://www.youtube.com/watch?v=${match[1]}${location.search || ''}`);
     }
   }
 
@@ -199,7 +251,7 @@
 
     redirectIfShortsURL(window.location.href);
 
-    // Observe SPA URL evolution
+    // Observing SPA URL evolution
     let lastUrl = location.href;
     shortsUrlObserver = new MutationObserver(() => {
       const currentUrl = location.href;
@@ -211,7 +263,7 @@
 
     shortsUrlObserver.observe(document, { subtree: true, childList: true });
 
-    // Observe DOM for Shorts UI and remove them
+    // Observing DOM for Shorts UI, remove if present
     const initDomObs = () => {
       if (document.body) {
         shortsDomObserver = new MutationObserver(removeShortsElements);
@@ -252,142 +304,132 @@
     await GM_setValue(SHORTS_STORAGE_KEY, shortsEnabled ? 'true' : 'false');
   }
 
-  function tagVideo(el) {
-    // Tag matching for videos and channels
-    const selectorsToTry = [
-      // Generic
-      '#channel-name a',
-      'ytd-channel-name a',
-      'a[href*="/@"]',
-      'a[href*="/channel/"]',
-      'a[href*="/c/"]',
-      'a[href*="/user/"]',
-      // Sidebars
-      '.yt-lockup-byline a',
-      '.yt-lockup-metadata-view-model-wiz__title a',
-      'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
-      // Homepage
-      '.yt-lockup-metadata-view-model-wiz__metadata .yt-core-attributed-string__link',
-      '.yt-content-metadata-view-model-wiz__metadata-row .yt-core-attributed-string__link',
-      // Search
-      '#text-container a.yt-simple-endpoint.style-scope.yt-formatted-string',
-      // Fallbacks
-      'yt-formatted-string a',
-      'yt-formatted-string',
-      '.yt-lockup-metadata-view-model-wiz__title',
-      '.yt-lockup-metadata-view-model-wiz',
-    ];
-
-    for (const selector of selectorsToTry) {
+  function tagVideoWithChannels(el) {
+    // Tag matching for videos with channel names
+    for (const selector of CHANNEL_BLOCK_SELECTORS) {
       const candidate = el.querySelector(selector);
-      if (candidate && candidate.textContent.trim()) {
+      if (candidate && candidate.textContent && candidate.textContent.trim()) {
         const name = candidate.textContent.trim();
         el.dataset.detube = name;
         log(`[+] Tagged video with channel: "${name}" using selector "${selector}"`);
         return true;
       }
     }
-
     log('[!] Could not find channel name with any selector inside:', el);
     return false;
   }
 
-  // Literally "best-effort" video id and title extraction
   function getVideoInfo(el) {
-    let id = '';
-    let title = '';
-    // Try common anchor patterns to get id
-    const a = el.querySelector('a[href*="/watch?v="]');
-    if (a) {
-      try {
-        const href = a.getAttribute('href') || '';
-        // Use relative /watch?v=... or absolute URL
-        const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
-        id = url.searchParams.get('v') || '';
-      } catch (_) {}
+    // Literally "best-effort" video id and title extraction
+    // Check if we already have the info in dataset
+    const cachedId = el.dataset.detubeVidId;
+    const cachedTitle = el.dataset.detubeVidTitle;
+    if (cachedId && cachedTitle) {
+      return { id: cachedId, title: cachedTitle };
     }
-
+    
+    let id = cachedId || '';
+    let title = cachedTitle || '';
+    
+    // Try common anchor patterns to get id - only if not already cached
     if (!id) {
-      const lockup = el.querySelector('div[class*="content-id-"]');
-      if (lockup) {
-        const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
-        if (m && m[1]) id = m[1];
+      const a = el.querySelector('a[href*="/watch?v="]');
+      if (a) {
+        try {
+          const href = a.getAttribute('href') || '';
+          // Use relative /watch?v=... or absolute URL
+          const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
+          id = url.searchParams.get('v') || '';
+        } catch (_) {}
+      }
+  
+      if (!id) {
+        const lockup = el.querySelector('div[class*="content-id-"]');
+        if (lockup) {
+          const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
+          if (m && m[1]) id = m[1];
+        }
       }
     }
-    // Title selectors
-    const titleSelectors = [
-      'a#video-title',
-      'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
-      '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
-      'span.yt-core-attributed-string[role="text"]',
-      'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
-      'yt-formatted-string#video-title',
-      'yt-formatted-string[id="video-title"]',
-      'yt-formatted-string[class="style-scope ytd-video-renderer"]',
-      'a#video-title-link span.yt-core-attributed-string',
-    ];
-    for (const ts of titleSelectors) {
-      const n = el.querySelector(ts);
-      if (n && n.textContent && n.textContent.trim()) { title = n.textContent.trim(); break; }
+    
+    if (!title) {
+      // Title selectors - only if not already cached
+      for (const ts of TITLE_SELECTORS) {
+        const n = el.querySelector(ts);
+        if (n && n.textContent && n.textContent.trim()) { 
+          title = n.textContent.trim(); 
+          break; 
+        }
+      }
     }
-    // write it, cut it, paste it, save it, load it, check it, quick rewrite it
+    
+    // Cache results
     if (id) el.dataset.detubeVidId = id;
     if (title) el.dataset.detubeVidTitle = title;
     return { id, title };
   }
 
-  function tagEmAll() {
-    const els = document.querySelectorAll([
-      'yt-lockup-view-model',
-      'ytd-video-renderer',
-      'ytd-compact-video-renderer',
-      'ytd-grid-video-renderer',
-      'ytd-rich-item-renderer'
-    ].join(','));
+  function tagVidsWithChannels() {
+    // Tag videos with channel names
+    const els = document.querySelectorAll(VIDEO_SELECTORS);
     let count = 0;
-    for (let el of els) if (tagVideo(el)) count++;
+    for (let i = 0; i < els.length; i++) {
+      // Skip already tagged elements
+      if (!els[i].dataset.detube && tagVideoWithChannels(els[i])) {
+        count++;
+      }
+    }
     //log(`Tagged ${count}/${els.length} videos.`);
   }
 
   function removeBlockedVideos() {
-    const videoSelectors = [
-      'yt-lockup-view-model',
-      'ytd-grid-video-renderer',
-      'ytd-video-renderer',
-      'ytd-compact-video-renderer',
-      'ytd-rich-item-renderer'
-    ];
-
-    document.querySelectorAll(videoSelectors.join(',')).forEach(item => {
-      // Ensure we have a tag
-      if (!item.dataset.detube) {
-        tagVideo(item);
-      }
-      // Channel-based removal
+    document.querySelectorAll(VIDEO_SELECTORS).forEach(item => {
+      // Channel-based removal (fastest)
       const name = item.dataset.detube && item.dataset.detube.trim();
       if (whitelistModeEnabled) {
-        // In whitelist mode: remove anything NOT in the whitelist
+        // Remove anything NOT whitelisted
         if (!name || !whitelisted.has(name)) { item.remove(); return; }
       } else {
         if (name && blocked.has(name)) { item.remove(); return; }
       }
-      // Video-based removal
-      const info = getVideoInfo(item);
-      const id = info.id;
+      
+      // Ensure we have a tag only if needed
+      if (!name) { tagVideoWithChannels(item); }
+      // Use dataset first bc that's faster than DOM queries
+      const id = item.dataset.detubeVidId || '';
       if (!whitelistModeEnabled && id && blockedVideos[id]) { item.remove(); return; }
-      // Title/channel-regex based removal
-      const title = (item.dataset.detubeVidTitle || info.title || '').trim();
-      const channelName = (item.dataset.detube || '').trim();
-      if (!whitelistModeEnabled && title && blockedTitlePatterns.length > 0) {
-        for (const pat of blockedTitlePatterns) {
-          try {
-            const re = new RegExp(pat, 'i');
-            if (re.test(title) || (channelName && re.test(channelName))) {
-              item.remove();
-              return;
+      
+      // Expensive video info extraction only if we don't have an ID
+      if (!whitelistModeEnabled && !id) {
+        const info = getVideoInfo(item);
+        if (info.id && blockedVideos[info.id]) { item.remove(); return; }
+      }
+      
+      // Title/channel-regex based removal (only if we have patterns)
+      if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
+        // Use dataset values when available (faster)
+        const title = (item.dataset.detubeVidTitle || getVideoInfo(item).title || '').trim();
+        const channelName = item.dataset.detube || '';
+
+        if ((title || channelName) && blockedTitlePatterns.length > 0) {
+          for (const pat of blockedTitlePatterns) {
+            try {
+              // Use cached regex patterns
+              let re = regexCache.get(pat);
+              if (!re) {
+                re = new RegExp(pat, 'i');
+                regexCache.set(pat, re);
+              }
+              
+              if (re.test(title) || (channelName && re.test(channelName))) {
+                item.remove();
+                return;
+              }
+            } catch (err) {
+              // invalid pattern, doesn't matter, skip
+              // kick pattern from cache
+              regexCache.delete(pat);
             }
-          } catch (err) {
-            // invalid pattern, doesn't matter, skip
           }
         }
       }
@@ -395,21 +437,41 @@
   }
 
   function applyCSS() {
-    let s = document.getElementById('detube_style_v4');
-    if (!s) { s = document.createElement('style'); s.id = 'detube_style_v4'; document.head.append(s); }
-    const baseTargets = [
-      'yt-lockup-view-model',
-      'ytd-video-renderer',
-      'ytd-compact-video-renderer',
-      'ytd-grid-video-renderer',
-      'ytd-rich-item-renderer'
-    ];
-    // In whitelist mode we rely on DOM removal for performance correctness.
-    // Only apply CSS rules for explicit blocked channels when not in whitelist mode.
-    const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
-      `${baseTargets.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
-    ).join('\n');
-    s.textContent = rules;
+    if (!detubeStyleElement) {
+      detubeStyleElement = document.getElementById('detube_style');
+      if (!detubeStyleElement) { 
+        detubeStyleElement = document.createElement('style'); 
+        detubeStyleElement.id = 'detube_style'; 
+        document.head.append(detubeStyleElement); 
+      }
+    }
+    
+    // Apply CSS rules for explicit blocked channels only when not in whitelist mode
+    if (whitelistModeEnabled) {
+      detubeStyleElement.textContent = '';
+      return;
+    }
+    
+    // Only update CSS if blocked set changed
+    // Tracking last applied state, skips unnecessary updates
+    const blockedCount = blocked.size;
+    if (!detubeStyleElement.lastBlockedCount || 
+        detubeStyleElement.lastBlockedCount !== blockedCount ||
+        detubeStyleElement.lastBlockedContent !== [...blocked].sort().join('|')) {
+      let rules = [];
+      for (const name of blocked) {
+        const escapedName = CSS.escape(name);
+        let selectors = [];
+        for (const target of BASE_TARGETS) {
+          selectors.push(`${target}[data-detube="${escapedName}"]`);
+        }
+        rules.push(`${selectors.join(', ')} { display: none !important; }`);
+      }
+      detubeStyleElement.textContent = rules.join('\n'); 
+      // Update tracking properties
+      detubeStyleElement.lastBlockedCount = blockedCount;
+      detubeStyleElement.lastBlockedContent = [...blocked].sort().join('|');
+    }
     //log(`Applied ${blocked.size} CSS rules.`);
   }
 
@@ -418,7 +480,7 @@
       const menu = document.querySelector('yt-list-view-model');
       if (menu && lastRenderer) {
         // Re-tag in case the dataset wasn't updated yet
-        tagVideo(lastRenderer);
+        tagVideoWithChannels(lastRenderer);
         // Get channel name from storage
         const channel = lastRenderer.dataset.detube;
         if (channel) {
@@ -428,12 +490,10 @@
           log('[!] Menu opened but no channel found on lastRenderer.');
         }
       }
-
-      // Also handle search results popup menu structure
-      const popupList = document.querySelector('ytd-menu-popup-renderer tp-yt-paper-listbox');
-      if (popupList && lastRenderer) {
+      // Also handle search results popup menu structur
+      if (document.querySelector('ytd-menu-popup-renderer tp-yt-paper-listbox') && lastRenderer) {
         // Re-tag and inject for search results menu
-        tagVideo(lastRenderer);
+        tagVideoWithChannels(lastRenderer);
         const channel = lastRenderer.dataset.detube;
         const rendererRef = lastRenderer;
         if (channel) {
@@ -485,12 +545,9 @@
     }
 
     // Remove any previous injected button
-    const oldButton = menu.querySelector('.detube-block-button');
-    if (oldButton) oldButton.remove();
-    const oldVideoButton = menu.querySelector('.detube-block-video-button');
-    if (oldVideoButton) oldVideoButton.remove();
-    const oldWhitelistButton = menu.querySelector('.detube-whitelist-button');
-    if (oldWhitelistButton) oldWhitelistButton.remove();
+    ['.detube-block-button', 
+     '.detube-block-video-button',
+     '.detube-whitelist-button'].forEach(sel => menu.querySelector(sel)?.remove());
 
     const button = document.createElement('yt-list-item-view-model');
     button.className = 'detube-block-button';
@@ -498,12 +555,10 @@
     button.setAttribute('tabindex', '0');
 
     const labelDiv = document.createElement('div');
-    labelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
-
     const textWrapper = document.createElement('div');
-    textWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
-
     const titleWrapper = document.createElement('div');
+    labelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    textWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
     titleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
 
     const span = document.createElement('span');
@@ -520,7 +575,7 @@
       blocked.add(channel);
       saveBlocked();
       applyCSS();
-      tagEmAll();
+      tagVidsWithChannels();
       log(`[>] Blocked channel: ${channel}`);
     });
 
@@ -540,15 +595,17 @@
     vBtn.setAttribute('tabindex', '0');
 
     const vLabelDiv = document.createElement('div');
-    vLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
     const vTextWrapper = document.createElement('div');
-    vTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
     const vTitleWrapper = document.createElement('div');
+    vLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    vTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
     vTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+
     const vSpan = document.createElement('span');
     vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     vSpan.setAttribute('role', 'text');
     vSpan.textContent = ` 🚧    Block This Video`;
+
     vTitleWrapper.appendChild(vSpan);
     vTextWrapper.appendChild(vTitleWrapper);
     vLabelDiv.appendChild(vTextWrapper);
@@ -573,15 +630,17 @@
     wBtn.setAttribute('tabindex', '0');
 
     const wLabelDiv = document.createElement('div');
-    wLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
     const wTextWrapper = document.createElement('div');
-    wTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
     const wTitleWrapper = document.createElement('div');
+    wLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    wTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
     wTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    
     const wSpan = document.createElement('span');
     wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     wSpan.setAttribute('role', 'text');
     wSpan.textContent = ` ⚪    Whitelist ${channel}`;
+    
     wTitleWrapper.appendChild(wSpan);
     wTextWrapper.appendChild(wTitleWrapper);
     wLabelDiv.appendChild(wTextWrapper);
@@ -592,7 +651,7 @@
       saveWhitelist();
       if (whitelistModeEnabled) {
         // Recompute view when whitelist is active
-        tagEmAll();
+        tagVidsWithChannels();
         removeBlockedVideos();
       }
       log(`[>] Whitelisted channel: ${channel}`);
@@ -671,20 +730,19 @@
       blocked.add(channel);
       saveBlocked();
       applyCSS();
-      tagEmAll();
-      log(`[>] Blocked channel: ${channel}`);
+      tagVidsWithChannels();
+      //log(`[>] Blocked channel: ${channel}`);
     }, 'blockChannel');
 
     // Block This Video (if id available)
     let blockVideoItem = null;
     if (videoInfo.id) {
       blockVideoItem = createPaperItem('🚧  Block This Video', () => {
-        const id = videoInfo.id;
-        const title = videoInfo.title || id;
-        blockedVideos[id] = title;
+        const title = videoInfo.title || videoInfo.id;
+        blockedVideos[videoInfo.id] = title;
         saveBlockedVideos();
         removeBlockedVideos();
-        log(`[>] Blocked video: ${title} (${id})`);
+        //log(`[>] Blocked video: ${title} (${videoInfo.id})`);
       }, 'blockVideo');
     } else {
       log('[!] Could not determine video id for Block Video (search)');
@@ -695,10 +753,10 @@
       whitelisted.add(channel);
       saveWhitelist();
       if (whitelistModeEnabled) {
-        tagEmAll();
+        tagVidsWithChannels();
         removeBlockedVideos();
       }
-      log(`[>] Whitelisted channel: ${channel}`);
+      //log(`[>] Whitelisted channel: ${channel}`);
     }, 'whitelist');
 
     // Append to listbox (keep order consistent with other menus)
@@ -708,8 +766,7 @@
 
     // Late hydration of labels to ensure they render after YT icons set up
     scheduleSearchMenuLabelHydration(list);
-
-    log(`[+] Injected search menu buttons for "${channel}"`);
+    //log(`[+] Injected search menu buttons for "${channel}"`);
   }
 
   function hydrateDetubeSearchMenuLabels(list) {
@@ -734,7 +791,7 @@
 
   function scheduleSearchMenuLabelHydration(list) {
     let tries = 0;
-    const maxTries = 12; // ~600ms
+    const maxTries = 12; // around 600ms
     const attempt = () => {
       const iconReady = list.querySelector('span.yt-icon-shape.style-scope.yt-icon.yt-spec-icon-shape') || list.querySelector('yt-icon');
       if (iconReady || tries >= maxTries) {
@@ -865,6 +922,11 @@
                 background: linear-gradient(135deg, #f2f2f2 0%, #ffffff 100%);
             }
 
+            input {
+                background: #f5f5f5;
+                color: #2e2e2e;
+            }
+
             .container {
                 background: rgba(255, 255, 255, 0.95);
                 color: #2c3e50;
@@ -913,6 +975,11 @@
         @media (prefers-color-scheme: dark) {
             body {
                 background: linear-gradient(135deg, #222222 0%, #333333 100%);
+                color: #f5f5f5;
+            }
+
+            input {
+                background: #2e2e2e;
                 color: #f5f5f5;
             }
 
@@ -973,11 +1040,6 @@
             border-radius: 5px;
             backdrop-filter: blur(10px);
             overflow: hidden;
-        }
-        
-        input {
-            background: #2e2e2e;
-            color: #f5f5f5;
         }
 
         .header {
@@ -1325,7 +1387,7 @@
             `}
         </div>
         <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
-          <span>deTube Blocker 0.1.5</span>
+          <span>deTube Blocker ${version}</span>
           <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet" target="_blank" style="color: inherit; text-decoration: none;">Learn About Regex</a></span>
         </div>
     </div>
@@ -1568,7 +1630,7 @@
             blocked.delete(action.channel);
             saveBlocked();
             applyCSS();
-            tagEmAll();
+            tagVidsWithChannels();
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
@@ -1612,7 +1674,7 @@
               saveWhitelist();
               saveBlockedTitlePatterns();
               applyCSS();
-              tagEmAll();
+              tagVidsWithChannels();
               removeBlockedVideos();
               log(`[>] Import merged: +${added} channels, +${vAdded} videos, +${pAdded} patterns, +${wAdded} whitelisted; dupes channels ${duplicates}, patterns ${pDupes}, whitelist ${wDupes}; invalid ${invalid}`);
             } catch (e) {
@@ -1628,14 +1690,14 @@
             saveBlockedVideos();
             saveBlockedTitlePatterns();
             applyCSS();
-            tagEmAll();
+            tagVidsWithChannels();
             removeBlockedVideos();
             log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear action again
           } else if (action.action === 'clearAllWhitelist') {
             whitelisted.clear();
             saveWhitelist();
-            tagEmAll();
+            tagVidsWithChannels();
             removeBlockedVideos();
             log('[>] Cleared whitelist');
             newTab.window.name = '';
@@ -1656,7 +1718,7 @@
             saveWhitelistMode();
             // Recompute filtering and CSS
             applyCSS();
-            tagEmAll();
+            tagVidsWithChannels();
             removeBlockedVideos();
             log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
             // Ask manager page to refresh so the correct list and controls are shown
@@ -1679,7 +1741,7 @@
           } else if (action.action === 'removeFromWhitelist' && action.channel) {
             whitelisted.delete(action.channel);
             saveWhitelist();
-            tagEmAll();
+            tagVidsWithChannels();
             removeBlockedVideos();
             log(`[>] Removed from whitelist: ${action.channel}`);
             newTab.window.name = '';
@@ -1709,7 +1771,7 @@
         }
       }
       if (newVideosFound) {
-        tagEmAll();
+        tagVidsWithChannels();
         applyCSS();
         removeBlockedVideos();
       }
@@ -1727,7 +1789,7 @@
     if (!renderer) return;
     
     // Re-tag renderer with fresh channel name
-    if (tagVideo(renderer)) {
+    if (tagVideoWithChannels(renderer)) {
       lastRenderer = renderer;
       // log('Three-dot clicked for:', renderer.dataset.detube);
     } else {
@@ -1743,7 +1805,7 @@
     handleThreeDotClick(renderer);
     // Proactively schedule search popup injection
     try {
-      if (renderer && tagVideo(renderer)) {
+      if (renderer && tagVideoWithChannels(renderer)) {
         const ch = renderer.dataset.detube;
         if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
       }
@@ -1766,7 +1828,7 @@
     handleThreeDotClick(renderer);
     // Proactively schedule search popup injection
     try {
-      if (renderer && tagVideo(renderer)) {
+      if (renderer && tagVideoWithChannels(renderer)) {
         const ch = renderer.dataset.detube;
         if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
       }
@@ -1774,14 +1836,13 @@
   }, true);
 
   (async () => {
-    await loadBlocked();
+    await loadBlockedChannels();
     await loadBlockedVideos();
-    await loadShortsSetting();
     await loadBlockedTitlePatterns();
+    await loadShortsSetting();
     await loadWhitelist();
-    await loadWhitelistMode();
 
-    tagEmAll();
+    tagVidsWithChannels();
     removeBlockedVideos();
     applyCSS();
     observeMenus();
