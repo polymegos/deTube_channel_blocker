@@ -89,4 +89,4 @@ You can learn about regex patterns in more detail [here](https://developer.mozil
 ## License
 
 This project is free to use under the **MIT License**. It is provided "as is", with no warranty of any kind.<br>
-**Use at your own risk.** You are responsible for compliance with YT's Terms of Service and applicable laws.
+**Use at your own risk.** You assume full responsibility for compliance with YouTube's Terms of Service and for any consequences arising from using this project.
