@@ -41,7 +41,7 @@ First, install one of these free extensions:
 
 *(Chrome itself isn't supported anymore, ideally use Brave instead.)*
 
-After installing one of those, you can add the **deTube Channel Blocker** script.
+After installing one of those, you can install the [deTube Channel Blocker](https://greasyfork.org/scripts/545113-detube-block-channels) script.
 
 ## How to use it
 
