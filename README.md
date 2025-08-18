@@ -4,97 +4,89 @@
 ![Issues](https://img.shields.io/github/issues/polymegos/deTube_channel_blocker)
 ![Last Commit](https://img.shields.io/github/last-commit/polymegos/deTube_channel_blocker)
 
-**deTube Channel Blocker** is a userscript to hide any videos from specific YT channels from ever appearing in your feed.
-In your suggested video feed, you will notice a three-dot menu (`⋮`) to the right of each video's title.
-If you click this menu, you will be shown three additional options:
+**deTube Channel Blocker** is a userscript that hides videos you don't want to see.<br>
+If you're tired of certain videos or channels popping up in your recommendations, this lets you block them easily.
 
-- Hide the videos of entire channels with the `🚫 Block [Channel Name]` option
-- Hide just a specific video with the `🚧 Block This Video` option
-- Add a channel to a whitelist with the `⚪ Whitelist [Channel Name]` option; when you toggle whitelist mode, only whitelisted channels will have their videos remain in the suggested videos feed
-- In the top right corner of the page, a `🚫` icon appears, leading to the blocker's management page
+For the videos in the suggested videos feed, you will notice a three-dot menu (`⋮`) to the right of each video's title.<br>
+After installing this userscript, that menu gives you new options inside that menu:
 
-## Why use it?
+* `🚫 Block [Channel Name]` - Hide all videos from this channel from appearing in your feeds
+* `🚧 Block This Video` - Hide just this one video
+* `⚪ Whitelist [Channel Name]` - Keep this channel always visible, even in "Whitelist Mode" (more on this below)
+*  🚫 `Blocker Manager` - A new button in the top-right corner of the page lets you manage all your blocked and whitelisted items
+*  The `Blocker Manager` provides a toggle to hide all short-form content outright
 
-* **Block channels directly from the video menu** (three-dot menu)
-* **No reloads required**, videos disappear immediately
-* **Saves your preferences** using your browser's local storage
-* **Very lightweight**, uses dynamic CSS rules instead of heavy DOM manipulation
-* **Works across YT surfaces** including mobile, music, and embeds
+## Why use this?
 
-## How the script works
+* **Instant results**, videos disappear right away, no refresh needed
+* **Remembers your choices** (all open source, fully local, saved in your browser)
+* **Fast and lightweight**, won't slow YouTube down
 
-This userscript injects a custom "Block Channel" option into YT's menu system.
-When clicked, the selected channel is added to your personal blocklist and all its videos are hidden automatically.
+* When you block a channel, the tool remembers it
+* Any videos from that channel are hidden automatically
+* It also works with blocking endless scrolling short-form content
 
-- Videos are tagged on load with their channel name
-- A CSS rule is generated to hide any element matching a blocked channel
-- The script observes new content (e.g. infinite scroll) and applies the same logic
-- Your blocklist is saved persistently using `GM_setValue`
+## Setup
 
-## Supported Browsers
+This is a *userscript*, meaning it runs with the help of a browser extension.
+First, install one of these free extensions:
 
-- Firefox
-- Edge
-- ~~Chrome~~
-- Brave
-- Safari
+* **Firefox:**
+  * [Violentmonkey](https://addons.mozilla.org/en-US/firefox/addon/violentmonkey/),
+  * [Tampermonkey](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/), or
+  * [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/)
+* **Chromium browsers (Brave, Edge, etc.):**
+  * [Violentmonkey](https://chromewebstore.google.com/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag), or
+  * [Tampermonkey](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
 
-## Installation
+*(Chrome itself isn't supported anymore, ideally use Brave instead.)*
 
-To use this userscript, you will need a userscript manager extension installed in your browser:
+After installing one of those, you can add the **deTube Channel Blocker** script.
 
-- [Violentmonkey (Firefox)](https://addons.mozilla.org/en-US/firefox/addon/violentmonkey/)
-- [Tampermonkey (Firefox)](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/)
-- [Greasemonkey (Firefox)](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/)
-- [Violentmonkey (Chromium-based)](https://chromewebstore.google.com/detail/violentmonkey/jinjaccalgkegednnccohejagnlnfdag)
-- [Tampermonkey (Chromium-based)](https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
+## How to use it
 
-## Technical Notes
+### Block a channel
 
-```
-deTube_block_channels/
-├── detube_channel_blocker.js  # Main userscript file
-├── README.md                  # This file
-└── LICENSE                    # MIT License
-```
+1. Find a video from the channel you don’t like
+2. Click the three-dot menu (`⋮`)
+3. Select `🚫 Block [Channel Name]`
+4. All of that channel’s videos disappear instantly
 
-- Does **not** interact with the API or send network requests at any point
-- Monitors navigation and dynamic content loading via `MutationObserver`
-- Uses `GM_getValue` and `GM_setValue` for safe, persistent blocklist storage
-- Does **not** track or transmit any user data
+### Block just one video
 
-## Usage Examples
+1. Find the video
+2. Click the three-dot menu (`⋮`)
+3. Select `🚧 Block This Video`
+4. That video will be gone for good
 
-### Blocking a Channel
-- Find a video from a channel you want to block in the suggested videos feed
-- Click the three-dot menu (`⋮`) next to the video (on the right)
-- Click `🚫 Block [Channel Name]`
-- All videos from this channel will immediately disappear from your view
+### Whitelist a channel (always show it)
 
-### Blocking a Specific Video
-- Find the video you want to block in the suggested videos feed
-- Click the three-dot menu (`⋮`) next to the video (on the right)
-- Click `🚧 Block This Video`. This specific video will be hidden from all views.
+1. Click the `🚫` icon in the top-right of the page (this opens the manager)
+2. Select `⚪ Whitelist [Channel Name]`
+3. Now that channel will never be hidden
 
-### Whitelisting a Channel
-- Open the Blocked Channels Manager (click the 🚫 icon in the top right of the page)
-- Find a video of the channel you want to whitelist in the suggested videos list
-- Click the `⚪ Whitelist [Channel Name]` button. The channel will be moved to the "Whitelisted Channels" section.
+### Whitelist mode (see only your favorite channels)
 
-### Using Whitelist Mode
-- In the Blocked Channels Manager (click the 🚫 icon in the top right of the page), enable "Whitelist Mode"
-- In this mode, only channels in your whitelist will be shown, all other channels will be hidden
-- You only ever see the whitelist when in whitelist mode (otherwise the UI would be to full)
+1. Open the `🚫` Blocker Manager (top right corner)
+2. Turn on “Whitelist Mode”
+3. Now *only* videos from your whitelisted channels will appear
 
-### Blocking by Title Pattern
-- In the Blocked Channels Manager, go to the "Title Patterns" section
-- Enter a regular expression pattern to match video titles, e.g. `\b(React)\b` for videos with "react" or "React" in the title
-- Click "Add"
-- Any video with a title matching this pattern will be hidden
+### Block by video title
+
+1. Open the `🚫` Blocker Manager (top right corner)
+2. In the "Title Patterns" section, type a word or phrase you don’t want. For example, the pattern `\b(React)\b/i` would case-insensitively block videos with "React"/"react"/"rEaCt"/... in the title
+4. Add the pattern
+5. Any video with that word in the title disappears
+
+Ideally, try formulating regex patterns [with this regex tester](https://regex101.com/) before applying them.<br>
+You can learn about regex patterns in more detail [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet).
+
+## Privacy & Safety
+
+* The script never *ever* communicates to any servers or any third party
+* Everything is stored safely in your own browser
 
 ## License
 
-MIT.
-
-This script is provided "as is", with no warranty of any kind.
-**Use at your own risk.** You are responsible for compliance with YT's Terms of Service and applicable laws.
+This project is free to use under the **MIT License**.<br>
+Follow and adhere to YouTube's Terms of Service.
