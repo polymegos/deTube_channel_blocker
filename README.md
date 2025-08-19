@@ -71,15 +71,108 @@ After installing one of those, you can install the [deTube Channel Blocker](http
 2. Turn on “Whitelist Mode”
 3. Now *only* videos from your whitelisted channels will appear
 
-### Block by video title
+### Block by video title or channel name using regex patterns
 
 1. Open the `🚫` Blocker Manager (top right corner)
-2. In the "Title Patterns" section, type a word or phrase you don’t want. For example, the pattern `\b(React)\b/i` would case-insensitively block videos with "React"/"react"/"rEaCt"/... in the title
-4. Add the pattern
-5. Any video with that word in the title disappears
+2. In the "Title Patterns" section, type a regex pattern you want to block
+3. Add the pattern
+4. Any video with a title or channel name matching that pattern will be hidden
 
-Ideally, try formulating regex patterns [with this regex tester](https://regex101.com/) before applying them.<br>
-You can learn about regex patterns in more detail [here](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet).
+## Understanding Regex Patterns
+
+The deTube Channel Blocker uses JavaScript's standard `RegExp` object for pattern matching.<br>
+This means you can use any valid JavaScript regular expression to block content.
+
+When you add a regex pattern, it will be matched against both video titles and channel names.<br>
+If either matches the pattern, the video will be hidden.
+
+### Regex Examples
+
+#### 1. Block specific words (case-sensitive)
+
+**Pattern:** `React`
+
+* Blocks any video title or channel name containing **"React"** (case-sensitive).
+* Would block: "Learning React", "React Native Tutorial", "ReactChannel"
+* Would **not** block: "react", "REACT"
+
+#### 2. Block specific words (case-insensitive)
+
+**Pattern:** `React`
+**Flag:** `\i`
+
+* Use the `\i` flag for case-insensitive matching.
+* Would block: "React", "react", "REACT", etc.
+
+#### 3. Block whole word only
+
+**Pattern:** `\bReact\b`
+**Flag:** (optional `\i`)
+
+* Blocks only when "React" appears as a whole word.
+* Would block: "Learning React"
+* Would **not** block: "ReactNative", "Overreact"
+
+#### 4. Block multiple words
+
+**Pattern:** `React|Vue|Angular`
+**Flag:** (optional `\i`)
+
+* Blocks any video containing "React", "Vue", or "Angular".
+* Would block: "Vue.js Tutorial", "Angular Fundamentals", "React vs Vue"
+
+#### 5. Block specific phrases (case-insensitive)
+
+**Pattern:** `how to.*react`
+**Flag:** `\i`
+
+* Blocks videos with titles like "How to Learn React", "How to Build a React App"
+* `.*` matches any characters between "how to" and "react"
+
+#### 6. Block by channel name (case-insensitive)
+
+**Pattern:** `techreview`
+**Flag:** `\i`
+
+* Blocks all videos from channels with "techreview" in their name
+* Would block: "TechReview Central", "NewTechReviews", etc.
+
+#### 7. Block clickbait-style titles
+
+**Pattern:** `\b\d+\s*(clever|genius|incredible|mind-blowing)\b`
+**Flag:** `\i`
+
+* Blocks titles like "10 Clever Hacks", "5 Incredible Tricks", etc.
+
+#### 8. Block non-English content (example: Chinese characters)
+
+**Pattern:** `[一-龯]+`
+
+* Blocks content with Chinese characters
+* You can adjust Unicode ranges for other languages (e.g., Cyrillic: `[А-я]`, Arabic: `[\u0600-\u06FF]`)
+
+#### 9. Block specific content types
+
+**Pattern:** `\b(short|compilation|fails)\b`
+**Flag:** `\i`
+
+* Blocks content categorized as shorts, compilations, or fails
+
+### Testing Your Patterns
+
+Before adding patterns, you can test them using online regex testers:
+- [regex101.com](https://regex101.com/) (select `ECMAScript (JavaScript)` flavor)
+- [regexr.com](https://regexr.com/)
+
+When testing, remember that your patterns will be matched against both video titles and channel names.
+
+### Important Notes
+
+1. **Case Sensitivity**: By default, patterns are case-sensitive. Use `(?i)` at the beginning of your pattern to make it case-insensitive.
+2. **Word Boundaries**: Use `\b` to match whole words only. For example, `\bReact\b` will match "React" but not "ReactNative".
+3. **Special Characters**: If you want to match special regex characters literally (like `.`, `*`, `?`, etc.), you need to escape them with a backslash. For example, to match a literal question mark, use `\?`.
+4. **Performance**: Very broad patterns may slow down page loading. Try to be as specific as possible.
+5. **Unicode Support**: The script fully supports Unicode characters, so you can block content in any language.
 
 ## Privacy & Safety
 
