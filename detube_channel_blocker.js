@@ -62,104 +62,40 @@
 // @compatible      edge
 // @compatible      safari
 // ==/UserScript==
-
+ 
 (function() {
   'use strict';
 
-  const version = '0.1.6 Dev';
-
+  const version = "0.1.6 Dev";
+ 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
   let blocked = new Set();
   let lastRenderer = null;
-
+ 
   // Whitelist persistence
   const WHITELIST_STORAGE_KEY = 'detube_whitelist_channels_store';
   let whitelisted = new Set();
   const WHITELIST_MODE_STORAGE_KEY = 'detube_whitelist_mode_enabled';
   let whitelistModeEnabled = false;
-
+ 
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
   let blockedVideos = {};
-
+ 
   // Regex persistence
   const REGEX_STORAGE_KEY = 'detube_blocked_title_patterns';
   let blockedTitlePatterns = [];
-
+ 
   // Shorts blocker persistence
   const SHORTS_STORAGE_KEY = 'detube_shorts_block_enabled';
   let shortsEnabled = false;
   let shortsUrlObserver = null;
   let shortsDomObserver = null;
-
+ 
   const log = (...a) => console.log('%c[deTube Block Channels]', 'color: green; font-weight: bold;', ...a);
-
-  const SHORTS_BLOCK_SELECTORS = [
-    // Block shorts if user toggled
-    'ytd-reel-shelf-renderer',
-    'grid-shelf-view-model.ytGridShelfViewModelHost',
-    'a[title="Shorts"]',
-    'div#dismissible.style-scope.ytd-rich-shelf-renderer'
-  ];
-
-  const CHANNEL_BLOCK_SELECTORS = [
-    // Generic
-    '#channel-name a',
-    'ytd-channel-name a',
-    'a[href*="/@"]',
-    'a[href*="/channel/"]',
-    'a[href*="/c/"]',
-    'a[href*="/user/"]',
-    // Sidebars
-    '.yt-lockup-byline a',
-    '.yt-lockup-metadata-view-model-wiz__title a',
-    'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
-    // Homepage
-    '.yt-lockup-metadata-view-model-wiz__metadata .yt-core-attributed-string__link',
-    '.yt-content-metadata-view-model-wiz__metadata-row .yt-core-attributed-string__link',
-    // Search
-    '#text-container a.yt-simple-endpoint.style-scope.yt-formatted-string',
-    // Fallbacks
-    'yt-formatted-string a',
-    'yt-formatted-string',
-    '.yt-lockup-metadata-view-model-wiz__title',
-    '.yt-lockup-metadata-view-model-wiz',
-  ];
-
-  const TITLE_SELECTORS = [
-    // Video title selectors
-    'a#video-title',
-    'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
-    '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
-    'span.yt-core-attributed-string[role="text"]',
-    'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
-    'yt-formatted-string#video-title',
-    'yt-formatted-string[id="video-title"]',
-    'yt-formatted-string[class="style-scope ytd-video-renderer"]',
-    'a#video-title-link span.yt-core-attributed-string',
-  ];
-
-  const VIDEO_SELECTORS = [
-    // Distinct video elements selectors
-    'yt-lockup-view-model',
-    'ytd-grid-video-renderer',
-    'ytd-video-renderer',
-    'ytd-compact-video-renderer',
-    'ytd-rich-item-renderer'
-  ].join(',');
-
-  const BASE_TARGETS = [
-    'yt-lockup-view-model',
-    'ytd-video-renderer',
-    'ytd-compact-video-renderer',
-    'ytd-grid-video-renderer',
-    'ytd-rich-item-renderer'
-  ];
-
-  let detubeStyleElement = null;
-
-  async function loadBlockedChannels() {
+ 
+  async function loadBlocked() {
     // Load blocked channels map
     const raw = await GM_getValue(STORAGE_KEY, '[]');
     try { 
@@ -167,7 +103,7 @@
       //log('Loaded blocked:', [...blocked]); 
     } catch(e){ blocked = new Set(); log('Load-error', e); }
   }
-
+ 
   async function loadWhitelist() {
     // Load whitelisted channels
     try {
@@ -179,7 +115,13 @@
       whitelisted = new Set();
       log('Load-error whitelist', e);
     }
-    // Load whitelist mode setting
+  }
+ 
+  async function saveWhitelist() {
+    await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
+  }
+ 
+  async function loadWhitelistMode() {
     try {
       const raw = await GM_getValue(WHITELIST_MODE_STORAGE_KEY, 'false');
       whitelistModeEnabled = String(raw) === 'true';
@@ -188,15 +130,11 @@
       log('Load-error whitelist mode', e);
     }
   }
-
-  async function saveWhitelist() {
-    await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
-  }
-
+ 
   async function saveWhitelistMode() {
     await GM_setValue(WHITELIST_MODE_STORAGE_KEY, whitelistModeEnabled ? 'true' : 'false');
   }
-
+ 
   async function loadBlockedVideos() {
     // Load blocked videos map
     try {
@@ -209,7 +147,7 @@
       log('Load-error videos', e);
     }
   }
-
+ 
   async function loadBlockedTitlePatterns() {
     // Load blocked title patterns
     try {
@@ -226,32 +164,44 @@
       log('Load-error title patterns', e);
     }
   }
-
+ 
+  // Block shorts if user toggled
+  const SHORTS_BLOCK_SELECTORS = [
+    'ytd-reel-shelf-renderer',
+    'grid-shelf-view-model.ytGridShelfViewModelHost',
+    'a[title="Shorts"]',
+    'div#dismissible.style-scope.ytd-rich-shelf-renderer'
+  ];
+ 
   function redirectIfShortsURL(url) {
-    const match = url.match(/^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/);
+    const shortsRegex = /^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/;
+    const match = url.match(shortsRegex);
     if (match) {
-      window.location.replace(`https://www.youtube.com/watch?v=${match[1]}${location.search || ''}`);
+      const videoId = match[1];
+      const query = window.location.search || '';
+      const newUrl = `https://www.youtube.com/watch?v=${videoId}${query}`;
+      window.location.replace(newUrl);
     }
   }
-
+ 
   function removeShortsElements() {
     if (!shortsEnabled) return;
     SHORTS_BLOCK_SELECTORS.forEach(sel => {
       document.querySelectorAll(sel).forEach(el => el.remove());
     });
   }
-
+ 
   function setupShortsBlocking(enable) {
     // Tear down observers
     if (shortsUrlObserver) { try { shortsUrlObserver.disconnect(); } catch(_){} shortsUrlObserver = null; }
     if (shortsDomObserver) { try { shortsDomObserver.disconnect(); } catch(_){} shortsDomObserver = null; }
-
+ 
     shortsEnabled = !!enable;
     if (!shortsEnabled) return;
-
+ 
     redirectIfShortsURL(window.location.href);
-
-    // Observing SPA URL evolution
+ 
+    // Observe SPA URL evolution
     let lastUrl = location.href;
     shortsUrlObserver = new MutationObserver(() => {
       const currentUrl = location.href;
@@ -260,10 +210,10 @@
         redirectIfShortsURL(currentUrl);
       }
     });
-
+ 
     shortsUrlObserver.observe(document, { subtree: true, childList: true });
-
-    // Observing DOM for Shorts UI, remove if present
+ 
+    // Observe DOM for Shorts UI and remove them
     const initDomObs = () => {
       if (document.body) {
         shortsDomObserver = new MutationObserver(removeShortsElements);
@@ -275,21 +225,21 @@
     };
     initDomObs();
   }
-
+ 
   async function saveBlocked() {
     // Persist blocked channels
     await GM_setValue(STORAGE_KEY, JSON.stringify([...blocked]));
   }
-
+ 
   async function saveBlockedVideos() {
     // Persist blocked videos
     await GM_setValue(VIDEOS_STORAGE_KEY, JSON.stringify(blockedVideos));
   }
-
+ 
   async function saveBlockedTitlePatterns() {
     await GM_setValue(REGEX_STORAGE_KEY, JSON.stringify(blockedTitlePatterns));
   }
-
+ 
   async function loadShortsSetting() {
     try {
       const raw = await GM_getValue(SHORTS_STORAGE_KEY, 'false');
@@ -299,188 +249,178 @@
       log('Load-error shorts', e);
     }
   }
-
+ 
   async function saveShortsSetting() {
     await GM_setValue(SHORTS_STORAGE_KEY, shortsEnabled ? 'true' : 'false');
   }
-
-  function tagVideoWithChannels(el) {
-    // Tag matching for videos with channel names
-    for (const selector of CHANNEL_BLOCK_SELECTORS) {
+ 
+  function tagVideo(el) {
+    // Tag matching for videos and channels
+    const selectorsToTry = [
+      // Generic
+      '#channel-name a',
+      'ytd-channel-name a',
+      'a[href*="/@"]',
+      'a[href*="/channel/"]',
+      'a[href*="/c/"]',
+      'a[href*="/user/"]',
+      // Sidebars
+      '.yt-lockup-byline a',
+      '.yt-lockup-metadata-view-model-wiz__title a',
+      'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
+      // Homepage
+      '.yt-lockup-metadata-view-model-wiz__metadata .yt-core-attributed-string__link',
+      '.yt-content-metadata-view-model-wiz__metadata-row .yt-core-attributed-string__link',
+      // Search
+      '#text-container a.yt-simple-endpoint.style-scope.yt-formatted-string',
+      // Fallbacks
+      'yt-formatted-string a',
+      'yt-formatted-string',
+      '.yt-lockup-metadata-view-model-wiz__title',
+      '.yt-lockup-metadata-view-model-wiz',
+    ];
+ 
+    for (const selector of selectorsToTry) {
       const candidate = el.querySelector(selector);
-      if (candidate && candidate.textContent && candidate.textContent.trim()) {
+      if (candidate && candidate.textContent.trim()) {
         const name = candidate.textContent.trim();
         el.dataset.detube = name;
         log(`[+] Tagged video with channel: "${name}" using selector "${selector}"`);
         return true;
       }
     }
+ 
     log('[!] Could not find channel name with any selector inside:', el);
     return false;
   }
-
+ 
+  // Literally "best-effort" video id and title extraction
   function getVideoInfo(el) {
-    // Literally "best-effort" video id and title extraction
-    // Check if we already have the info in dataset
-    const cachedId = el.dataset.detubeVidId;
-    const cachedTitle = el.dataset.detubeVidTitle;
-    if (cachedId && cachedTitle) {
-      return { id: cachedId, title: cachedTitle };
+    let id = '';
+    let title = '';
+    // Try common anchor patterns to get id
+    const a = el.querySelector('a[href*="/watch?v="]');
+    if (a) {
+      try {
+        const href = a.getAttribute('href') || '';
+        // Use relative /watch?v=... or absolute URL
+        const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
+        id = url.searchParams.get('v') || '';
+      } catch (_) {}
     }
-    
-    let id = cachedId || '';
-    let title = cachedTitle || '';
-    
-    // Try common anchor patterns to get id - only if not already cached
+ 
     if (!id) {
-      const a = el.querySelector('a[href*="/watch?v="]');
-      if (a) {
-        try {
-          const href = a.getAttribute('href') || '';
-          // Use relative /watch?v=... or absolute URL
-          const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
-          id = url.searchParams.get('v') || '';
-        } catch (_) {}
-      }
-  
-      if (!id) {
-        const lockup = el.querySelector('div[class*="content-id-"]');
-        if (lockup) {
-          const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
-          if (m && m[1]) id = m[1];
-        }
+      const lockup = el.querySelector('div[class*="content-id-"]');
+      if (lockup) {
+        const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
+        if (m && m[1]) id = m[1];
       }
     }
-    
-    if (!title) {
-      // Title selectors - only if not already cached
-      for (const ts of TITLE_SELECTORS) {
-        const n = el.querySelector(ts);
-        if (n && n.textContent && n.textContent.trim()) { 
-          title = n.textContent.trim(); 
-          break; 
-        }
-      }
+    // Title selectors
+    const titleSelectors = [
+      'a#video-title',
+      'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+      '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
+      'span.yt-core-attributed-string[role="text"]',
+      'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+      'yt-formatted-string#video-title',
+      'yt-formatted-string[id="video-title"]',
+      'yt-formatted-string[class="style-scope ytd-video-renderer"]',
+      'a#video-title-link span.yt-core-attributed-string',
+    ];
+    for (const ts of titleSelectors) {
+      const n = el.querySelector(ts);
+      if (n && n.textContent && n.textContent.trim()) { title = n.textContent.trim(); break; }
     }
-    
-    // Cache results
+    // write it, cut it, paste it, save it, load it, check it, quick rewrite it
     if (id) el.dataset.detubeVidId = id;
     if (title) el.dataset.detubeVidTitle = title;
     return { id, title };
   }
-
-  function tagVidsWithChannels() {
-    // Tag videos with channel names
-    const els = document.querySelectorAll(VIDEO_SELECTORS);
+ 
+  function tagEmAll() {
+    const els = document.querySelectorAll([
+      'yt-lockup-view-model',
+      'ytd-video-renderer',
+      'ytd-compact-video-renderer',
+      'ytd-grid-video-renderer',
+      'ytd-rich-item-renderer'
+    ].join(','));
     let count = 0;
-    for (let i = 0; i < els.length; i++) {
-      // Skip already tagged elements
-      if (!els[i].dataset.detube && tagVideoWithChannels(els[i])) {
-        count++;
-      }
-    }
+    for (let el of els) if (tagVideo(el)) count++;
     //log(`Tagged ${count}/${els.length} videos.`);
   }
-
+ 
   function removeBlockedVideos() {
-    document.querySelectorAll(VIDEO_SELECTORS).forEach(item => {
-      // Channel-based removal (fastest)
+    const videoSelectors = [
+      'yt-lockup-view-model',
+      'ytd-grid-video-renderer',
+      'ytd-video-renderer',
+      'ytd-compact-video-renderer',
+      'ytd-rich-item-renderer'
+    ];
+ 
+    document.querySelectorAll(videoSelectors.join(',')).forEach(item => {
+      // Ensure we have a tag
+      if (!item.dataset.detube) {
+        tagVideo(item);
+      }
+      // Channel-based removal
       const name = item.dataset.detube && item.dataset.detube.trim();
       if (whitelistModeEnabled) {
-        // Remove anything NOT whitelisted
+        // In whitelist mode: remove anything NOT in the whitelist
         if (!name || !whitelisted.has(name)) { item.remove(); return; }
       } else {
         if (name && blocked.has(name)) { item.remove(); return; }
       }
-      
-      // Ensure we have a tag only if needed
-      if (!name) { tagVideoWithChannels(item); }
-      // Use dataset first bc that's faster than DOM queries
-      const id = item.dataset.detubeVidId || '';
+      // Video-based removal
+      const info = getVideoInfo(item);
+      const id = info.id;
       if (!whitelistModeEnabled && id && blockedVideos[id]) { item.remove(); return; }
-      
-      // Expensive video info extraction only if we don't have an ID
-      if (!whitelistModeEnabled && !id) {
-        const info = getVideoInfo(item);
-        if (info.id && blockedVideos[info.id]) { item.remove(); return; }
-      }
-      
-      // Title/channel-regex based removal (only if we have patterns)
-      if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
-        // Use dataset values when available (faster)
-        const title = (item.dataset.detubeVidTitle || getVideoInfo(item).title || '').trim();
-        const channelName = item.dataset.detube || '';
-
-        if ((title || channelName) && blockedTitlePatterns.length > 0) {
-          for (const pat of blockedTitlePatterns) {
-            try {
-              // Use cached regex patterns
-              let re = regexCache.get(pat);
-              if (!re) {
-                re = new RegExp(pat, 'i');
-                regexCache.set(pat, re);
-              }
-              
-              if (re.test(title) || (channelName && re.test(channelName))) {
-                item.remove();
-                return;
-              }
-            } catch (err) {
-              // invalid pattern, doesn't matter, skip
-              // kick pattern from cache
-              regexCache.delete(pat);
+      // Title/channel-regex based removal
+      const title = (item.dataset.detubeVidTitle || info.title || '').trim();
+      const channelName = (item.dataset.detube || '').trim();
+      if (!whitelistModeEnabled && title && blockedTitlePatterns.length > 0) {
+        for (const pat of blockedTitlePatterns) {
+          try {
+            const re = new RegExp(pat, 'i');
+            if (re.test(title) || (channelName && re.test(channelName))) {
+              item.remove();
+              return;
             }
+          } catch (err) {
+            // invalid pattern, doesn't matter, skip
           }
         }
       }
     });
   }
-
+ 
   function applyCSS() {
-    if (!detubeStyleElement) {
-      detubeStyleElement = document.getElementById('detube_style');
-      if (!detubeStyleElement) { 
-        detubeStyleElement = document.createElement('style'); 
-        detubeStyleElement.id = 'detube_style'; 
-        document.head.append(detubeStyleElement); 
-      }
-    }
-    
-    // Apply CSS rules for explicit blocked channels only when not in whitelist mode
-    if (whitelistModeEnabled) {
-      detubeStyleElement.textContent = '';
-      return;
-    }
-    
-    // Only update CSS if blocked set changed
-    // Tracking last applied state, skips unnecessary updates
-    const blockedCount = blocked.size;
-    if (!detubeStyleElement.lastBlockedCount || 
-        detubeStyleElement.lastBlockedCount !== blockedCount ||
-        detubeStyleElement.lastBlockedContent !== [...blocked].sort().join('|')) {
-      let rules = [];
-      for (const name of blocked) {
-        const escapedName = CSS.escape(name);
-        let selectors = [];
-        for (const target of BASE_TARGETS) {
-          selectors.push(`${target}[data-detube="${escapedName}"]`);
-        }
-        rules.push(`${selectors.join(', ')} { display: none !important; }`);
-      }
-      detubeStyleElement.textContent = rules.join('\n'); 
-      // Update tracking properties
-      detubeStyleElement.lastBlockedCount = blockedCount;
-      detubeStyleElement.lastBlockedContent = [...blocked].sort().join('|');
-    }
+    let s = document.getElementById('detube_style_v4');
+    if (!s) { s = document.createElement('style'); s.id = 'detube_style_v4'; document.head.append(s); }
+    const baseTargets = [
+      'yt-lockup-view-model',
+      'ytd-video-renderer',
+      'ytd-compact-video-renderer',
+      'ytd-grid-video-renderer',
+      'ytd-rich-item-renderer'
+    ];
+    // In whitelist mode we rely on DOM removal for performance correctness.
+    // Only apply CSS rules for explicit blocked channels when not in whitelist mode.
+    const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
+      `${baseTargets.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
+    ).join('\n');
+    s.textContent = rules;
     //log(`Applied ${blocked.size} CSS rules.`);
   }
-
+ 
   function observeMenus() {
     const observer = new MutationObserver(() => {
       const menu = document.querySelector('yt-list-view-model');
       if (menu && lastRenderer) {
         // Re-tag in case the dataset wasn't updated yet
-        tagVideoWithChannels(lastRenderer);
+        tagVideo(lastRenderer);
         // Get channel name from storage
         const channel = lastRenderer.dataset.detube;
         if (channel) {
@@ -490,10 +430,12 @@
           log('[!] Menu opened but no channel found on lastRenderer.');
         }
       }
-      // Also handle search results popup menu structur
-      if (document.querySelector('ytd-menu-popup-renderer tp-yt-paper-listbox') && lastRenderer) {
+ 
+      // Also handle search results popup menu structure
+      const popupList = document.querySelector('ytd-menu-popup-renderer tp-yt-paper-listbox');
+      if (popupList && lastRenderer) {
         // Re-tag and inject for search results menu
-        tagVideoWithChannels(lastRenderer);
+        tagVideo(lastRenderer);
         const channel = lastRenderer.dataset.detube;
         const rendererRef = lastRenderer;
         if (channel) {
@@ -506,7 +448,7 @@
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
-
+ 
   // Retry helper to wait for popup items to render before injection
   function scheduleSearchMenuInjection(channel, renderer) {
     let tries = 0;
@@ -525,7 +467,7 @@
     // Start after a frame
     requestAnimationFrame(attempt);
   }
-
+ 
   function getOpenPopupList() {
     const lists = Array.from(document.querySelectorAll('ytd-menu-popup-renderer tp-yt-paper-listbox'));
     for (const list of lists) {
@@ -536,81 +478,84 @@
     }
     return null;
   }
-
+ 
   function injectButton(channel) {
     const menu = document.querySelector('yt-list-view-model');
     if (!menu) {
       log('[!] Menu not found for injection');
       return;
     }
-
+ 
     // Remove any previous injected button
-    ['.detube-block-button', 
-     '.detube-block-video-button',
-     '.detube-whitelist-button'].forEach(sel => menu.querySelector(sel)?.remove());
-
+    const oldButton = menu.querySelector('.detube-block-button');
+    if (oldButton) oldButton.remove();
+    const oldVideoButton = menu.querySelector('.detube-block-video-button');
+    if (oldVideoButton) oldVideoButton.remove();
+    const oldWhitelistButton = menu.querySelector('.detube-whitelist-button');
+    if (oldWhitelistButton) oldWhitelistButton.remove();
+ 
     const button = document.createElement('yt-list-item-view-model');
     button.className = 'detube-block-button';
     button.setAttribute('role', 'menuitem');
     button.setAttribute('tabindex', '0');
-
+ 
     const labelDiv = document.createElement('div');
-    const textWrapper = document.createElement('div');
-    const titleWrapper = document.createElement('div');
     labelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+ 
+    const textWrapper = document.createElement('div');
     textWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+ 
+    const titleWrapper = document.createElement('div');
     titleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
-
+ 
     const span = document.createElement('span');
     span.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     span.setAttribute('role', 'text');
     span.textContent = ` 🚫    Block ${channel}`; // This is hilarious
-
+ 
     titleWrapper.appendChild(span);
     textWrapper.appendChild(titleWrapper);
     labelDiv.appendChild(textWrapper);
     button.appendChild(labelDiv);
-
+ 
     button.addEventListener('click', () => {
       blocked.add(channel);
       saveBlocked();
       applyCSS();
-      tagVidsWithChannels();
+      tagEmAll();
       log(`[>] Blocked channel: ${channel}`);
     });
-
+ 
     menu.appendChild(button);
     log(`[+] Injected block button for "${channel}"`);
-
+ 
     // Inject "Block Video" button just below
     const videoInfo = lastRenderer ? getVideoInfo(lastRenderer) : { id: '', title: '' };
     if (!videoInfo.id) {
       log('[!] Could not determine video id for Block Video');
       return;
     }
-
+ 
     const vBtn = document.createElement('yt-list-item-view-model');
     vBtn.className = 'detube-block-video-button';
     vBtn.setAttribute('role', 'menuitem');
     vBtn.setAttribute('tabindex', '0');
-
+ 
     const vLabelDiv = document.createElement('div');
-    const vTextWrapper = document.createElement('div');
-    const vTitleWrapper = document.createElement('div');
     vLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    const vTextWrapper = document.createElement('div');
     vTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    const vTitleWrapper = document.createElement('div');
     vTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
-
     const vSpan = document.createElement('span');
     vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     vSpan.setAttribute('role', 'text');
     vSpan.textContent = ` 🚧    Block This Video`;
-
     vTitleWrapper.appendChild(vSpan);
     vTextWrapper.appendChild(vTitleWrapper);
     vLabelDiv.appendChild(vTextWrapper);
     vBtn.appendChild(vLabelDiv);
-
+ 
     vBtn.addEventListener('click', () => {
       const id = videoInfo.id;
       const title = videoInfo.title || id;
@@ -619,48 +564,46 @@
       removeBlockedVideos();
       log(`[>] Blocked video: ${title} (${id})`);
     });
-
+ 
     menu.appendChild(vBtn);
     log(`[+] Injected block video button for id "${videoInfo.id}"`);
-
+ 
     // Inject "Whitelist Channel" button
     const wBtn = document.createElement('yt-list-item-view-model');
     wBtn.className = 'detube-whitelist-button';
     wBtn.setAttribute('role', 'menuitem');
     wBtn.setAttribute('tabindex', '0');
-
+ 
     const wLabelDiv = document.createElement('div');
-    const wTextWrapper = document.createElement('div');
-    const wTitleWrapper = document.createElement('div');
     wLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    const wTextWrapper = document.createElement('div');
     wTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    const wTitleWrapper = document.createElement('div');
     wTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
-    
     const wSpan = document.createElement('span');
     wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     wSpan.setAttribute('role', 'text');
     wSpan.textContent = ` ⚪    Whitelist ${channel}`;
-    
     wTitleWrapper.appendChild(wSpan);
     wTextWrapper.appendChild(wTitleWrapper);
     wLabelDiv.appendChild(wTextWrapper);
     wBtn.appendChild(wLabelDiv);
-
+ 
     wBtn.addEventListener('click', () => {
       whitelisted.add(channel);
       saveWhitelist();
       if (whitelistModeEnabled) {
         // Recompute view when whitelist is active
-        tagVidsWithChannels();
+        tagEmAll();
         removeBlockedVideos();
       }
       log(`[>] Whitelisted channel: ${channel}`);
     });
-
+ 
     menu.appendChild(wBtn);
     log(`[+] Injected whitelist button for "${channel}"`);
   }
-
+ 
   // Inject items into the search results popup menu (tp-yt-paper-listbox)
   function injectSearchMenuButtons(channel, renderer) {
     const list = getOpenPopupList();
@@ -668,10 +611,10 @@
       log('[!] Search popup listbox not found for injection');
       return;
     }
-
+ 
     // Clean previously injected items (idempotent)
     list.querySelectorAll('.detube-menu-item').forEach(el => el.remove());
-
+ 
     // Build a plain paper item for robust rendering inside the popup
     const createPaperItem = (label, onClick, kind) => {
       // Host wrapper like native items
@@ -679,7 +622,7 @@
       host.className = 'style-scope ytd-menu-popup-renderer detube-menu-item';
       try { host.dataset.detubeLabel = label; } catch(_) {}
       try { if (kind) host.dataset.detubeKind = kind; } catch(_) {}
-
+ 
       const paper = document.createElement('tp-yt-paper-item');
       paper.className = 'style-scope ytd-menu-service-item-renderer';
       paper.setAttribute('role', 'option');
@@ -693,14 +636,14 @@
       paper.style.padding = '0 16px';
       paper.style.cursor = 'pointer';
       try { paper.setAttribute('aria-label', label); } catch(_) {}
-
+ 
       const text = document.createElement('yt-formatted-string');
       text.id = 'label';
       text.className = 'style-scope ytd-menu-service-item-renderer';
       text.textContent = label;
       try { text.removeAttribute('is-empty'); } catch(_) {}
       paper.appendChild(text);
-
+ 
       const handler = (ev) => {
         ev.stopPropagation();
         try { onClick(); } catch(_) {}
@@ -720,55 +663,57 @@
       host.appendChild(paper);
       return host;
     };
-
+ 
     // Resolve video info once, tied to provided renderer (fallback to global)
     const ref = renderer || lastRenderer;
     const videoInfo = ref ? getVideoInfo(ref) : { id: '', title: '' };
-
+ 
     // Block Channel
     const blockChannelItem = createPaperItem(`🚫  Block ${channel}`, () => {
       blocked.add(channel);
       saveBlocked();
       applyCSS();
-      tagVidsWithChannels();
-      //log(`[>] Blocked channel: ${channel}`);
+      tagEmAll();
+      log(`[>] Blocked channel: ${channel}`);
     }, 'blockChannel');
-
+ 
     // Block This Video (if id available)
     let blockVideoItem = null;
     if (videoInfo.id) {
       blockVideoItem = createPaperItem('🚧  Block This Video', () => {
-        const title = videoInfo.title || videoInfo.id;
-        blockedVideos[videoInfo.id] = title;
+        const id = videoInfo.id;
+        const title = videoInfo.title || id;
+        blockedVideos[id] = title;
         saveBlockedVideos();
         removeBlockedVideos();
-        //log(`[>] Blocked video: ${title} (${videoInfo.id})`);
+        log(`[>] Blocked video: ${title} (${id})`);
       }, 'blockVideo');
     } else {
       log('[!] Could not determine video id for Block Video (search)');
     }
-
+ 
     // Whitelist Channel
     const whitelistItem = createPaperItem(`⚪  Whitelist ${channel}`, () => {
       whitelisted.add(channel);
       saveWhitelist();
       if (whitelistModeEnabled) {
-        tagVidsWithChannels();
+        tagEmAll();
         removeBlockedVideos();
       }
-      //log(`[>] Whitelisted channel: ${channel}`);
+      log(`[>] Whitelisted channel: ${channel}`);
     }, 'whitelist');
-
+ 
     // Append to listbox (keep order consistent with other menus)
     list.appendChild(blockChannelItem);
     if (blockVideoItem) list.appendChild(blockVideoItem);
     list.appendChild(whitelistItem);
-
+ 
     // Late hydration of labels to ensure they render after YT icons set up
     scheduleSearchMenuLabelHydration(list);
-    //log(`[+] Injected search menu buttons for "${channel}"`);
+ 
+    log(`[+] Injected search menu buttons for "${channel}"`);
   }
-
+ 
   function hydrateDetubeSearchMenuLabels(list) {
     try {
       const items = list.querySelectorAll('ytd-menu-service-item-renderer.detube-menu-item');
@@ -788,10 +733,10 @@
       });
     } catch(_) {}
   }
-
+ 
   function scheduleSearchMenuLabelHydration(list) {
     let tries = 0;
-    const maxTries = 12; // around 600ms
+    const maxTries = 12; // ~600ms
     const attempt = () => {
       const iconReady = list.querySelector('span.yt-icon-shape.style-scope.yt-icon.yt-spec-icon-shape') || list.querySelector('yt-icon');
       if (iconReady || tries >= maxTries) {
@@ -803,13 +748,13 @@
     };
     requestAnimationFrame(attempt);
   }
-
+ 
   function createManagementButton() {
     const button = document.createElement('button');
     button.id = 'detube-manage-btn';
     button.title = 'Manage Blocked Channels';
     button.textContent = '🚫';
-
+ 
     button.style.cssText = `
       background: none;
       border: none;
@@ -824,31 +769,31 @@
       align-items: center;
       justify-content: center;
     `;
-
+ 
     button.addEventListener('mouseenter', () => {
       button.style.backgroundColor = 'rgba(0,0,0,0.1)';
     });
-
+ 
     button.addEventListener('mouseleave', () => {
       button.style.backgroundColor = 'transparent';
     });
-
+ 
     button.addEventListener('click', openBlockedChannelsTab);
     return button;
   }
-
+ 
   function injectManagementButton() {
     // Manager button to view list of blocked channels
     const tryInject = () => {
       const masthead = document.querySelector('ytd-masthead #end') || document.querySelector('ytd-masthead');
-
+ 
       if (masthead && !document.getElementById('detube-manage-btn')) {
         const managementButton = createManagementButton();
         managementButton.style.marginLeft = '8px';
         masthead.appendChild(managementButton);
       }
     };
-
+ 
     tryInject();
     const mastheadObserver = new MutationObserver(tryInject);
     mastheadObserver.observe(document.body, {
@@ -857,7 +802,7 @@
     });
     setTimeout(() => mastheadObserver.disconnect(), 30000);
   }
-
+ 
   function generateBlockedChannelsHTML() {
     // Best way to manage is to direct away to local page
     // Generate HTML for blocked channels overview
@@ -899,7 +844,7 @@
         </button>
       </div>
     `).join('');
-
+ 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -912,128 +857,118 @@
             padding: 0;
             box-sizing: border-box;
         }
-
+ 
         h2 {
             margin-bottom: 10px;
         }
-
+ 
         @media (prefers-color-scheme: light) {
             body {
                 background: linear-gradient(135deg, #f2f2f2 0%, #ffffff 100%);
             }
-
-            input {
-                background: #f5f5f5;
-                color: #2e2e2e;
-            }
-
+ 
             .container {
                 background: rgba(255, 255, 255, 0.95);
                 color: #2c3e50;
             }
-
+ 
             .header {
                 background: linear-gradient(135deg, #ff6b6b, #ee5a24);
                 color: white;
             }
-
+ 
             .stat-number {
                 color: #ee5a24;
             }
-
+ 
             .stat-label {
                 color: #666;
             }
-
+ 
             .channel-item {
                 background: white;
                 border-left: 4px solid #ee5a24;
             }
-
+ 
             .channel-name {
                 color: #2c3e50;
             }
-
+ 
             .channels-list::-webkit-scrollbar-thumb {
                 background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             }
-
+ 
             .channels-list::-webkit-scrollbar-track {
                 background: #e1e1e1;
             }
-
+ 
             .footer {
                 color: #666;
                 border-top: 1px solid rgba(0, 0, 0, 0.1);
             }
-
+ 
             .empty-state {
                 color: #666;
             }
         }
-
+ 
         @media (prefers-color-scheme: dark) {
             body {
                 background: linear-gradient(135deg, #222222 0%, #333333 100%);
                 color: #f5f5f5;
             }
-
-            input {
-                background: #2e2e2e;
-                color: #f5f5f5;
-            }
-
+ 
             .container {
                 background: rgba(30, 30, 30, 0.95);
                 color: #f5f5f5;
             }
-
+ 
             .header {
                 background: linear-gradient(135deg, #ff6b6b, #ee5a24);
                 color: white;
             }
-
+ 
             .stat-number {
                 color: #ff9f43;
             }
-
+ 
             .stat-label {
                 color: #ccc;
             }
-
+ 
             .channel-item {
                 background: #2e2e2e;
                 border-left: 4px solid #ff6b6b;
             }
-
+ 
             .channel-name {
                 color: #f5f5f5;
             }
-
+ 
             .channels-list::-webkit-scrollbar-thumb {
                 background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             }
-
+ 
             .channels-list::-webkit-scrollbar-track {
                 background: #414141;
             }
-
+ 
             .footer {
                 color: #999;
                 border-top: 1px solid rgba(255, 255, 255, 0.1);
             }
-
+ 
             .empty-state {
                 color: #aaa;
             }
         }
-
+ 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             padding: 20px;
         }
-
+ 
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -1041,46 +976,51 @@
             backdrop-filter: blur(10px);
             overflow: hidden;
         }
-
+        
+        input {
+            background: #2e2e2e;
+            color: #f5f5f5;
+        }
+ 
         .header {
             padding: 30px;
             text-align: center;
         }
-
+ 
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
             font-weight: 700;
         }
-
+ 
         .header p {
             opacity: 0.9;
             font-size: 1.1rem;
         }
-
+ 
         .stats {
             display: flex;
             justify-content: space-around;
             padding: 20px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
-
+ 
         .stat {
             text-align: center;
         }
-
+ 
         .stat-number {
             font-size: 2rem;
             font-weight: bold;
             color: #ee5a24;
         }
-
+ 
         .stat-label {
             color: #666;
             font-size: 0.9rem;
             margin-top: 5px;
         }
-
+ 
         .controls {
             padding: 20px 10px;
             display: flex;
@@ -1088,19 +1028,19 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-
+ 
         .controls .btn {
             flex: 0 0 auto;
             white-space: nowrap;
         }
-
+ 
         .controls .pattern-row {
             flex: 1 1 100%;
             display: flex;
             gap: 5px;
             align-items: center;
         }
-
+ 
         /* Toggle switch */
         .toggle {
             display: inline-flex;
@@ -1148,7 +1088,7 @@
         input:checked + .slider:before {
             transform: translateX(20px);
         }
-
+ 
         .btn {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
@@ -1160,40 +1100,40 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
         }
-
+ 
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
         }
-
+ 
         .btn.danger {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
         }
-
+ 
         .btn.danger:hover {
             box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
         }
-
+ 
         .channels-list {
             padding: 20px;
             max-height: 60vh;
             overflow-y: auto;
         }
-
+ 
         .channels-list::-webkit-scrollbar {
             width: 8px;
         }
-
+ 
         .channels-list::-webkit-scrollbar-track {
             border-radius: 10px;
         }
-
+ 
         .channels-list::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             border-radius: 10px;
         }
-
+ 
         .channel-item {
             display: flex;
             justify-content: space-between;
@@ -1211,23 +1151,23 @@
             overflow: hidden;
             animation: detube-appear 220ms ease;
         }
-
+ 
         @keyframes detube-appear {
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: none; }
         }
-
+ 
         .channel-item:hover {
             transform: translateX(5px);
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         }
-
+ 
         .channel-name {
             font-weight: 600;
             flex: 1;
             padding-right: 15px;
         }
-
+ 
         .channel-item.removing {
             opacity: 0;
             transform: translateX(20px);
@@ -1236,7 +1176,7 @@
             padding-bottom: 0;
             margin-bottom: 0;
         }
-
+ 
         .unblock-btn {
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             color: white;
@@ -1251,25 +1191,25 @@
             align-items: center;
             gap: 5px;
         }
-
+ 
         .unblock-btn:hover {
             background: linear-gradient(135deg, #c0392b, #a93226);
             transform: scale(1.05);
         }
-
+ 
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: #666;
         }
-
+ 
         .empty-state svg {
             width: 80px;
             height: 80px;
             margin-bottom: 20px;
             opacity: 0.5;
         }
-
+ 
         .footer {
             text-align: center;
             padding: 20px;
@@ -1277,28 +1217,28 @@
             font-size: 0.9rem;
             border-top: 1px solid rgba(0, 0, 0, 0.1);
         }
-
+ 
         @media (max-width: 600px) {
             .container {
                 margin: 10px;
                 border-radius: 15px;
             }
-
+ 
             .header h1 {
                 font-size: 2rem;
             }
-
+ 
             .stats {
                 flex-direction: column;
                 gap: 15px;
             }
-
+ 
             .channel-item {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 10px;
             }
-
+ 
             .unblock-btn {
                 align-self: flex-end;
             }
@@ -1338,7 +1278,7 @@
               <button class="btn" onclick="addPattern()">Add</button>
             </div>`}
         </div>
-
+ 
         <div class="channels-list">
             ${whitelistModeEnabled ? `
               <h2 style=\"padding: 0 20px;\">Whitelist Channels (${whitelistArray.length})</h2>
@@ -1388,10 +1328,9 @@
         </div>
         <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
           <span>deTube Blocker ${version}</span>
-          <span><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions/Cheatsheet" target="_blank" style="color: inherit; text-decoration: none;">Learn About Regex</a></span>
         </div>
     </div>
-
+ 
     <script>
         function refreshPage() {
             try {
@@ -1404,7 +1343,7 @@
             } catch (_) { /* idc about parse errors */ }
             window.name = JSON.stringify({ action: 'refreshManager' });
         }
-
+ 
         function unblockChannel(channelName) {
             if (!confirm('Are you sure you want to unblock "' + channelName + '"?')) return;
             const item = document.querySelector('.channel-item[data-channel="' + channelName.replace(/"/g, '\\"') + '"]');
@@ -1440,7 +1379,7 @@
                 finish();
             }
         }
-
+ 
         function clearAll() {
             if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels, ${videosArray.length} videos and ${patternsArray.length} patterns? This cannot be undone.')) return;
             const items = Array.from(document.querySelectorAll('.channel-item'));
@@ -1457,7 +1396,7 @@
                 setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
             }, totalAnimMs);
         }
-
+ 
         function clearAllWhitelist() {
             if (!confirm('Are you sure you want to clear all ${whitelistArray.length} whitelisted channels? This cannot be undone.')) return;
             const items = Array.from(document.querySelectorAll('.channel-item'));
@@ -1472,7 +1411,7 @@
                 setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
             }, totalAnimMs);
         }
-
+ 
         function exportData() {
           try {
             const payload = {
@@ -1495,7 +1434,7 @@
             try { alert('Export failed: ' + e); } catch(_){ /* no-op */ }
           }
         }
-
+ 
         function triggerImport() {
           const input = document.getElementById('import-file');
           if (!input) return;
@@ -1534,7 +1473,7 @@
           };
           input.click();
         }
-
+ 
         // Shorts + Whitelist toggle handling
         document.addEventListener('DOMContentLoaded', () => {
             const t = document.getElementById('shorts-toggle');
@@ -1550,7 +1489,7 @@
                 });
             }
         });
-
+ 
         function addPattern() {
           const input = document.getElementById('pattern-input');
           const val = (input.value || '').trim();
@@ -1564,7 +1503,7 @@
           input.value = '';
           try { refreshPage(); } catch(_) {}
         }
-
+ 
         function removePattern(pattern) {
           if (!confirm('Remove pattern "' + pattern + '"?')) return;
           // Find item by comparing dataset to avoid CSS escaping pitfalls
@@ -1584,7 +1523,7 @@
             finish();
           }
         }
-
+ 
         function removeFromWhitelist(channelName) {
             if (!confirm('Remove "' + channelName + '" from whitelist?')) return;
             const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
@@ -1606,14 +1545,14 @@
   </body>
 </html>`;
   }
-
+ 
   function openBlockedChannelsTab() {
     // Blocked channels management tab
     const html = generateBlockedChannelsHTML();
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const newTab = window.open(url, '_blank');
-
+ 
     // Monitor the new tab for actions
     const checkForActions = setInterval(() => {
       try {
@@ -1622,15 +1561,15 @@
           URL.revokeObjectURL(url);
           return;
         }
-
+ 
         if (newTab.window && newTab.window.name) {
           const action = JSON.parse(newTab.window.name);
-
+ 
           if (action.action === 'unblock' && action.channel) {
             blocked.delete(action.channel);
             saveBlocked();
             applyCSS();
-            tagVidsWithChannels();
+            tagEmAll();
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
@@ -1674,7 +1613,7 @@
               saveWhitelist();
               saveBlockedTitlePatterns();
               applyCSS();
-              tagVidsWithChannels();
+              tagEmAll();
               removeBlockedVideos();
               log(`[>] Import merged: +${added} channels, +${vAdded} videos, +${pAdded} patterns, +${wAdded} whitelisted; dupes channels ${duplicates}, patterns ${pDupes}, whitelist ${wDupes}; invalid ${invalid}`);
             } catch (e) {
@@ -1690,14 +1629,14 @@
             saveBlockedVideos();
             saveBlockedTitlePatterns();
             applyCSS();
-            tagVidsWithChannels();
+            tagEmAll();
             removeBlockedVideos();
             log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear action again
           } else if (action.action === 'clearAllWhitelist') {
             whitelisted.clear();
             saveWhitelist();
-            tagVidsWithChannels();
+            tagEmAll();
             removeBlockedVideos();
             log('[>] Cleared whitelist');
             newTab.window.name = '';
@@ -1718,7 +1657,7 @@
             saveWhitelistMode();
             // Recompute filtering and CSS
             applyCSS();
-            tagVidsWithChannels();
+            tagEmAll();
             removeBlockedVideos();
             log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
             // Ask manager page to refresh so the correct list and controls are shown
@@ -1741,7 +1680,7 @@
           } else if (action.action === 'removeFromWhitelist' && action.channel) {
             whitelisted.delete(action.channel);
             saveWhitelist();
-            tagVidsWithChannels();
+            tagEmAll();
             removeBlockedVideos();
             log(`[>] Removed from whitelist: ${action.channel}`);
             newTab.window.name = '';
@@ -1751,14 +1690,14 @@
         // Cross-origin errors are really to be expected here ...
       }
     }, 500);
-
+ 
     // Stop checking after ~5 minutes
     setTimeout(() => {
       clearInterval(checkForActions);
       URL.revokeObjectURL(url);
     }, 300000);
   }
-
+ 
   function observeNewVideos() {
     const observer = new MutationObserver(mutations => {
       let newVideosFound = false;
@@ -1771,32 +1710,32 @@
         }
       }
       if (newVideosFound) {
-        tagVidsWithChannels();
+        tagEmAll();
         applyCSS();
         removeBlockedVideos();
       }
     });
-
+ 
     observer.observe(document.body, {
       childList: true,
       subtree: true
     });
-
+ 
   }
-
+ 
   // Handler for three-dot menu clicks
   const handleThreeDotClick = (renderer) => {
     if (!renderer) return;
     
     // Re-tag renderer with fresh channel name
-    if (tagVideoWithChannels(renderer)) {
+    if (tagVideo(renderer)) {
       lastRenderer = renderer;
       // log('Three-dot clicked for:', renderer.dataset.detube);
     } else {
       log('Could not tag renderer.');
     }
   };
-
+ 
   // Handle clicks on the original three-dot menu button
   document.body.addEventListener('click', e => {
     const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
@@ -1805,13 +1744,13 @@
     handleThreeDotClick(renderer);
     // Proactively schedule search popup injection
     try {
-      if (renderer && tagVideoWithChannels(renderer)) {
+      if (renderer && tagVideo(renderer)) {
         const ch = renderer.dataset.detube;
         if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
       }
     } catch(_) {}
   }, true);
-
+ 
   // Handle clicks on the new three-dot menu button
   document.body.addEventListener('click', e => {
     const button = e.target.closest('button.style-scope.yt-icon-button');
@@ -1828,40 +1767,41 @@
     handleThreeDotClick(renderer);
     // Proactively schedule search popup injection
     try {
-      if (renderer && tagVideoWithChannels(renderer)) {
+      if (renderer && tagVideo(renderer)) {
         const ch = renderer.dataset.detube;
         if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
       }
     } catch(_) {}
   }, true);
-
+ 
   (async () => {
-    await loadBlockedChannels();
+    await loadBlocked();
     await loadBlockedVideos();
-    await loadBlockedTitlePatterns();
     await loadShortsSetting();
+    await loadBlockedTitlePatterns();
     await loadWhitelist();
-
-    tagVidsWithChannels();
+    await loadWhitelistMode();
+ 
+    tagEmAll();
     removeBlockedVideos();
     applyCSS();
     observeMenus();
     injectManagementButton();
     observeNewVideos();
     setupShortsBlocking(shortsEnabled);
-
+ 
     const observer = new MutationObserver(() => {
         removeBlockedVideos();
         if (shortsEnabled) removeShortsElements();
     });
-
+ 
     observer.observe(document.body, {
         childList: true,
         subtree: true,
     });
-
+ 
     window.addEventListener('yt-navigate-finish', removeBlockedVideos);
     window.addEventListener('yt-navigate-finish', () => { if (shortsEnabled) removeShortsElements(); });
   })();
-
+ 
 })();
