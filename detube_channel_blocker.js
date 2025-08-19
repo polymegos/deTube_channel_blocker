@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.6
+// @version         0.1.7 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -65,7 +65,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.6";
+  const version = "0.1.7 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -306,7 +306,7 @@
   function tagVideo(el) {
     // Early exit if already tagged
     if (el.dataset.detube) return true;
-    
+
     for (const selector of TAG_VIDEO_SELECTORS) {
       const candidate = el.querySelector(selector);
       if (candidate && candidate.textContent) {
@@ -329,7 +329,7 @@
     if (el.dataset.detubeVidId && el.dataset.detubeVidTitle) {
       return { id: el.dataset.detubeVidId, title: el.dataset.detubeVidTitle };
     }
-    
+
     let id = el.dataset.detubeVidId || '';
     let title = el.dataset.detubeVidTitle || '';
 
@@ -353,24 +353,24 @@
           if (m && m[1]) id = m[1];
         }
       }
-      
+
       if (id) el.dataset.detubeVidId = id;
     }
 
     if (!title) {
       for (const ts of TITLE_SELECTORS) {
         const n = el.querySelector(ts);
-        if (n && n.textContent) { 
+        if (n && n.textContent) {
           const trimmed = n.textContent.trim();
           if (trimmed) {
-            title = trimmed; 
-            break; 
+            title = trimmed;
+            break;
           }
         }
       }
       if (title) el.dataset.detubeVidTitle = title;
     }
-    
+
     return { id, title };
 }
 
@@ -392,7 +392,7 @@
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
     const fragment = document.createDocumentFragment();
     const toRemove = [];
-    
+
     for (const item of videos) {
       // Ensure we have a tag
       if (!item.dataset.detube) {
@@ -402,22 +402,22 @@
       const name = item.dataset.detube && item.dataset.detube.trim();
       if (whitelistModeEnabled) {
         // In whitelist mode: remove anything NOT in the whitelist
-        if (!name || !whitelisted.has(name)) { 
-          toRemove.push(item); 
-          continue; 
+        if (!name || !whitelisted.has(name)) {
+          toRemove.push(item);
+          continue;
         }
       } else {
-        if (name && blocked.has(name)) { 
-          toRemove.push(item); 
-          continue; 
+        if (name && blocked.has(name)) {
+          toRemove.push(item);
+          continue;
         }
       }
       // Video-based removal
       const info = getVideoInfo(item);
       const id = info.id;
-      if (!whitelistModeEnabled && id && blockedVideos[id]) { 
-        toRemove.push(item); 
-        continue; 
+      if (!whitelistModeEnabled && id && blockedVideos[id]) {
+        toRemove.push(item);
+        continue;
       }
       // Title/channel-regex based removal
       const title = (item.dataset.detubeVidTitle || info.title || '').trim();
@@ -427,20 +427,20 @@
           try {
             const re = new RegExp(patternObj.pattern, 'i');
             const scope = patternObj.scope || 'both';
-            
+
             let shouldRemove = false;
-            
+
             if (scope === 'channel' && channelName && re.test(channelName)) {
               shouldRemove = true;
             } else if (scope === 'title' && title && re.test(title)) {
               shouldRemove = true;
             } else if (scope === 'both' && (
-              (title && re.test(title)) || 
+              (title && re.test(title)) ||
               (channelName && re.test(channelName))
             )) {
               shouldRemove = true;
             }
-            
+
             if (shouldRemove) {
               toRemove.push(item);
               break; // Exit pattern loop
@@ -451,7 +451,7 @@
         }
       }
     }
-    
+
     // Remove all marked elements in batch
     for (const item of toRemove) {
       item.remove();
@@ -1421,14 +1421,14 @@
                   </div>
               ` : videoItems}
               <hr style=\"margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);\" />
-              <h2 style=\"padding: 0 20px;\">Blocked Title Patterns (${patternsArray.length})</h2>
+              <h2 style=\"padding: 0 20px;\">Blocked Patterns (${patternsArray.length})</h2>
               ${patternsArray.length === 0 ? `
                 <div class=\"empty-state\">
                   <svg viewBox=\"0 0 24 24\" fill=\"currentColor\">
                     <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
                   </svg>
-                  <h3>No title patterns yet!</h3>
-                  <p>Enter a regex above to block matching titles</p>
+                  <h3>No patterns yet!</h3>
+                  <p>Enter a regex above to block matching elements</p>
                 </div>
               ` : patternItems}
             `}
@@ -1557,38 +1557,105 @@
                 const raw = String(reader.result || '').trim();
                 if (!raw) throw new Error('Empty file');
                 const data = JSON.parse(raw);
-                // Accept either legacy array, or object with channels/videos/patterns
+
+                // Default values
                 let names = [];
                 let videos = {};
                 let patterns = [];
                 let whitelist = [];
+
                 if (Array.isArray(data)) {
+                  // Legacy format
                   names = data;
+
                 } else if (data && typeof data === 'object') {
-                  if (Array.isArray(data.blockedNames)) names = data.blockedNames;
-                  if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
-                  if (Array.isArray(data.blockedTitlePatterns)) {
-                    // Handle both old format (strings) and new format (objects)
-                    patterns = data.blockedTitlePatterns.map(p => {
-                      if (typeof p === 'string') {
-                        return { pattern: p, scope: 'both' };
-                      } else if (typeof p === 'object' && p.pattern) {
-                        return {
-                          pattern: p.pattern,
-                          scope: p.scope || 'both'
-                        };
-                      }
-                      return null;
-                    }).filter(p => p !== null);
+                  if (data.blockedNames || data.blockedVideos || data.blockedTitlePatterns || data.whitelisted) {
+                    // Standard format support
+                    if (Array.isArray(data.blockedNames)) names = data.blockedNames;
+                    if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
+                    if (Array.isArray(data.blockedTitlePatterns)) {
+                      patterns = data.blockedTitlePatterns.map(p => {
+                        if (typeof p === 'string') {
+                          return { pattern: p, scope: 'both' };
+                        } else if (typeof p === 'object' && p.pattern) {
+                          return { pattern: p.pattern, scope: p.scope || 'both' };
+                        }
+                        return null;
+                      }).filter(p => p !== null);
+                    }
+                    if (Array.isArray(data.whitelisted)) whitelist = data.whitelisted.filter(x => typeof x === 'string');
+
+                  } else if (data.filterData && typeof data.filterData === 'object') {
+                    // Supporting a new format from an older plugin
+                    const fd = data.filterData;
+                    // Channels (by name for now)
+                    if (Array.isArray(fd.channelId)) {
+                      names = fd.channelId
+                        .map(x => {
+                          if (typeof x !== 'string') return null;
+                          const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*?)\\)/);
+                          return match ? match[1].replace('@', '').trim() : null;
+                        })
+                        .filter(x => x); // remove nulls
+                    }
+                    // Videos (convert to object -> id:title)
+                    if (Array.isArray(fd.videoId)) {
+                      let lastTitle = null;
+                      fd.videoId.forEach(x => {
+                        if (typeof x !== 'string' || !x.trim()) return;
+
+                        if (x.startsWith('//')) {
+                          // Extract title from comment
+                          const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*)\\)/);
+                          if (match) {
+                            let title = match[1].trim();
+                            // Remove trailing timestamp in parentheses, e.g. "(10/23/2024, 5:28:31 PM)"
+                            title = title.replace(/\\(\\d{1,2}\\/\\d{1,2}\\/\\d{4},\\s*\\d{1,2}:\\d{2}:\\d{2}\\s*(AM|PM)\\)*$/i, '').trim();
+                            // Such a weird error, but this seems really necessary
+                            if (title.includes(')') && !title.includes('(')) {
+                              title = title.replace(/\\)$/, '').trim();
+                            }
+                            lastTitle = title;
+                          }
+                        } else {
+                          // This is a video ID -> link with last title (if available)
+                          if (lastTitle) {
+                            videos[x] = lastTitle;
+                            lastTitle = null; // reset for next
+                          } else {
+                            videos[x] = '';
+                          }
+                        }
+                      });
+                    }
+
+                    // Title Patterns
+                    if (Array.isArray(fd.title)) {
+                      patterns = fd.title.filter(x => typeof x === 'string' && x.trim()).map(x => ({ pattern: x, scope: 'title' }));
+                    }
+
+                    // Channel Patterns
+                    if (Array.isArray(fd.channelName)) {
+                      patterns = patterns.concat(fd.channelName.filter(x => typeof x === 'string' && x.trim()).map(x => ({ pattern: x, scope: 'channel' })));
+                    }
                   }
-                  if (Array.isArray(data.whitelisted)) whitelist = data.whitelisted.filter(x => typeof x === 'string');
                 }
+
                 if (!Array.isArray(names)) throw new Error('Invalid format for channels');
-                window.name = JSON.stringify({ action: 'importData', data: { blockedNames: names, blockedVideos: videos, blockedTitlePatterns: patterns, whitelisted: whitelist } });
-                // Ask parent to rebuild UI
+
+                window.name = JSON.stringify({
+                  action: 'importData',
+                  data: {
+                    blockedNames: names,
+                    blockedVideos: videos,
+                    blockedTitlePatterns: patterns,
+                    whitelisted: whitelist
+                  }
+                });
+
                 try { refreshPage(); } catch(_) {}
               } catch (e) {
-                try { alert('Import failed: ' + e); } catch(_){ }
+                try { alert('Import failed: ' + e); } catch(_) {}
               }
             };
             reader.readAsText(file);
@@ -1743,14 +1810,14 @@
                   return null;
                   }).filter(p => p !== null);
               }
-              
+
               let pAdded = 0, pDupes = 0;
               for (const patObj of pats) {
                   // Check if pattern with same scope already exists
-                  const exists = blockedTitlePatterns.some(p => 
+                  const exists = blockedTitlePatterns.some(p =>
                   p.pattern === patObj.pattern && p.scope === patObj.scope
                   );
-                  
+
                   if (!exists) {
                   blockedTitlePatterns.push(patObj);
                   pAdded++;
@@ -1817,12 +1884,12 @@
                   pattern: action.pattern,
                   scope: action.scope || 'both'
               };
-              
+
               // Check if pattern with same scope already exists
-              const exists = blockedTitlePatterns.some(p => 
+              const exists = blockedTitlePatterns.some(p =>
               p.pattern === newPattern.pattern && p.scope === newPattern.scope
               );
-              
+
               if (!exists) {
                   blockedTitlePatterns.push(newPattern);
                   saveBlockedTitlePatterns();
@@ -1833,7 +1900,7 @@
               try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'removePattern' && action.pattern) {
               const scope = action.scope || 'both';
-              blockedTitlePatterns = blockedTitlePatterns.filter(p => 
+              blockedTitlePatterns = blockedTitlePatterns.filter(p =>
               !(p.pattern === action.pattern && p.scope === scope)
               );
               saveBlockedTitlePatterns();
@@ -1864,13 +1931,13 @@
   function observeNewVideos() {
     // Debounce processing to avoid excessive calls
     let processingTimeout = null;
-    
+
     const observer = new MutationObserver(mutations => {
       // Clear existing timeout to debounce
       if (processingTimeout) {
         clearTimeout(processingTimeout);
       }
-      
+
       // Schedule processing with debounce
       processingTimeout = setTimeout(() => {
         let newVideosFound = false;
@@ -1878,7 +1945,7 @@
           for (const node of mutation.addedNodes) {
             if (!(node instanceof HTMLElement)) continue;
             // More specific selectors for better performance
-            if (node.matches(VIDEO_SELECTORS.join(',')) || 
+            if (node.matches(VIDEO_SELECTORS.join(',')) ||
                 node.querySelector && node.querySelector(VIDEO_SELECTORS.join(','))) {
               newVideosFound = true;
               break;
@@ -1886,7 +1953,7 @@
           }
           if (newVideosFound) break;
         }
-        
+
         if (newVideosFound) {
           // Only process newly added videos instead of all videos
           for (const mutation of mutations) {
@@ -1916,7 +1983,7 @@
       childList: true,
       subtree: true
     });
-    
+
     // Add filterVideo function for single video processing
     function filterVideo(video) {
       // Channel-based removal
@@ -1937,7 +2004,7 @@
       if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
         // Reuse regex cache from improvement 4
         if (!this.regexCache) this.regexCache = new Map();
-        
+
         for (const patternObj of blockedTitlePatterns) {
           try {
             const cacheKey = patternObj.pattern;
@@ -1946,21 +2013,21 @@
               re = new RegExp(patternObj.pattern, 'i');
               this.regexCache.set(cacheKey, re);
             }
-            
+
             const scope = patternObj.scope || 'both';
             let shouldRemove = false;
-            
+
             if (scope === 'channel' && channelName && re.test(channelName)) {
               shouldRemove = true;
             } else if (scope === 'title' && title && re.test(title)) {
               shouldRemove = true;
             } else if (scope === 'both' && (
-              (title && re.test(title)) || 
+              (title && re.test(title)) ||
               (channelName && re.test(channelName))
             )) {
               shouldRemove = true;
             }
-            
+
             if (shouldRemove) {
               video.remove();
               return;
