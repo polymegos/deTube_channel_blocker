@@ -102,16 +102,16 @@ If either matches the pattern, the video will be hidden.
 **Flag:** `\i`
 
 * Use the `\i` flag for case-insensitive matching.
-* Would block: "React", "react", "REACT", etc.
+* `React\i` would block: "React", "react", "REACT", etc.
 
 #### 3. Block whole word only
 
 **Pattern:** `\bReact\b`
 **Flag:** (optional `\i`)
 
-* Blocks only when "React" appears as a whole word.
-* Would block: "Learning React"
-* Would **not** block: "ReactNative", "Overreact"
+* `\bReact\b` blocks only when "React" appears as a whole word.
+* `\bReact\b` would block: "Learning React"
+* `\bReact\b\i` would block: "Learning react" and "Learning ReAcT" aswell
 
 #### 4. Block multiple words
 
