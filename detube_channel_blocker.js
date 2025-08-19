@@ -1442,15 +1442,34 @@
 
     <script>
         function refreshPage() {
-            try {
-                const pending = JSON.parse(window.name || 'null');
-                if (pending && pending.action && pending.action !== 'refreshManager') {
-                    // Defer refresh, avoid running over pending unblock / clearAll / toggle
-                    setTimeout(() => { window.name = JSON.stringify({ action: 'refreshManager' }); }, 600);
-                    return;
+          try {
+            const pending = JSON.parse(window.name || 'null');
+            // If there is an actionable pending entry (not a 'refreshManager' marker),
+            // wait until the parent clears it before requesting a refresh.
+            if (pending && pending.action && pending.action !== 'refreshManager') {
+              const waitForClear = () => {
+                try {
+                  const current = JSON.parse(window.name || 'null');
+                  if (!current || !current.action) {
+                    // safe to request refresh now
+                    window.name = JSON.stringify({ action: 'refreshManager' });
+                  } else {
+                    // still pending, check again shortly
+                    setTimeout(waitForClear, 200);
+                  }
+                } catch (_) {
+                  // parse error or other issue: try again
+                  setTimeout(waitForClear, 200);
                 }
-            } catch (_) { /* idc about parse errors */ }
-            window.name = JSON.stringify({ action: 'refreshManager' });
+              };
+              waitForClear();
+              return;
+            }
+          } catch (_) {
+            // ignore parse errors and fall through to set refresh marker
+          }
+          // No pending action — set refresh immediately
+          window.name = JSON.stringify({ action: 'refreshManager' });
         }
 
         function unblockChannel(channelName) {
