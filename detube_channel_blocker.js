@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.6 Dev
+// @version         0.1.6
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -65,7 +65,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.6 Dev";
+  const version = "0.1.6";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -199,20 +199,32 @@
   }
 
   async function loadBlockedTitlePatterns() {
-    // Load blocked title patterns
-    try {
+      // Load blocked title patterns
+      try {
       const raw = await GM_getValue(REGEX_STORAGE_KEY, '[]');
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
-        blockedTitlePatterns = arr.filter(p => typeof p === 'string');
+          // Handle both old format (strings) and new format (objects with pattern and scope)
+          blockedTitlePatterns = arr.map(p => {
+          if (typeof p === 'string') {
+              // Convert old format to new format
+              return { pattern: p, scope: 'both' };
+          } else if (typeof p === 'object' && p.pattern) {
+              return {
+              pattern: p.pattern,
+              scope: p.scope || 'both'
+              };
+          }
+          return null;
+          }).filter(p => p !== null);
       } else {
-        blockedTitlePatterns = [];
+          blockedTitlePatterns = [];
       }
-      log('Loaded title patterns:', blockedTitlePatterns);
-    } catch (e) {
-      blockedTitlePatterns = [];
-      log('Load-error title patterns', e);
-    }
+        log('Loaded title patterns:', blockedTitlePatterns);
+      } catch (e) {
+        blockedTitlePatterns = [];
+        log('Load-error title patterns', e);
+      }
   }
 
   function redirectIfShortsURL(url) {
@@ -292,52 +304,75 @@
   }
 
   function tagVideo(el) {
+    // Early exit if already tagged
+    if (el.dataset.detube) return true;
+    
     for (const selector of TAG_VIDEO_SELECTORS) {
       const candidate = el.querySelector(selector);
-      if (candidate && candidate.textContent.trim()) {
+      if (candidate && candidate.textContent) {
         const name = candidate.textContent.trim();
-        el.dataset.detube = name;
-        log(`[+] Tagged video with channel: "${name}" using selector "${selector}"`);
-        return true;
+        if (name) { // Additional check for non-empty after trim
+          el.dataset.detube = name;
+          // log(`[+] Tagged video with channel: "${name}" using selector "${selector}"`);
+          return true;
+        }
       }
     }
 
-    log('[!] Could not find channel name with any selector inside:', el);
+    // log('[!] Could not find channel name with any selector inside:', el);
     return false;
   }
 
   // Literally "best-effort" video id and title extraction
   function getVideoInfo(el) {
-    let id = '';
-    let title = '';
-    // Try common anchor patterns to get id
-    const a = el.querySelector('a[href*="/watch?v="]');
-    if (a) {
-      try {
-        const href = a.getAttribute('href') || '';
-        // Use relative /watch?v=... or absolute URL
-        const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
-        id = url.searchParams.get('v') || '';
-      } catch (_) {}
+    // Early exit if already extracted
+    if (el.dataset.detubeVidId && el.dataset.detubeVidTitle) {
+      return { id: el.dataset.detubeVidId, title: el.dataset.detubeVidTitle };
     }
+    
+    let id = el.dataset.detubeVidId || '';
+    let title = el.dataset.detubeVidTitle || '';
 
+    // Only extract missing information
     if (!id) {
-      const lockup = el.querySelector('div[class*="content-id-"]');
-      if (lockup) {
-        const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
-        if (m && m[1]) id = m[1];
+      // Try common anchor patterns to get id
+      const a = el.querySelector('a[href*="/watch?v="]');
+      if (a) {
+        try {
+          const href = a.getAttribute('href') || '';
+          // Use relative /watch?v=... or absolute URL
+          const url = href.startsWith('http') ? new URL(href) : new URL(href, 'https://www.youtube.com');
+          id = url.searchParams.get('v') || '';
+        } catch (_) {}
       }
+
+      if (!id) {
+        const lockup = el.querySelector('div[class*="content-id-"]');
+        if (lockup) {
+          const m = Array.from(lockup.classList).map(c => c.match(/^content-id-([A-Za-z0-9_-]{6,})$/)).find(Boolean);
+          if (m && m[1]) id = m[1];
+        }
+      }
+      
+      if (id) el.dataset.detubeVidId = id;
     }
 
-    for (const ts of TITLE_SELECTORS) {
-      const n = el.querySelector(ts);
-      if (n && n.textContent && n.textContent.trim()) { title = n.textContent.trim(); break; }
+    if (!title) {
+      for (const ts of TITLE_SELECTORS) {
+        const n = el.querySelector(ts);
+        if (n && n.textContent) { 
+          const trimmed = n.textContent.trim();
+          if (trimmed) {
+            title = trimmed; 
+            break; 
+          }
+        }
+      }
+      if (title) el.dataset.detubeVidTitle = title;
     }
-    // write it, cut it, paste it, save it, load it, check it, quick rewrite it
-    if (id) el.dataset.detubeVidId = id;
-    if (title) el.dataset.detubeVidTitle = title;
+    
     return { id, title };
-  }
+}
 
   function tagAllVideos() {
     const els = document.querySelectorAll([
@@ -353,7 +388,12 @@
   }
 
   function removeBlockedVideos() {
-    document.querySelectorAll(VIDEO_SELECTORS.join(',')).forEach(item => {
+    // Batch process videos to reduce DOM reflows
+    const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
+    const fragment = document.createDocumentFragment();
+    const toRemove = [];
+    
+    for (const item of videos) {
       // Ensure we have a tag
       if (!item.dataset.detube) {
         tagVideo(item);
@@ -362,31 +402,60 @@
       const name = item.dataset.detube && item.dataset.detube.trim();
       if (whitelistModeEnabled) {
         // In whitelist mode: remove anything NOT in the whitelist
-        if (!name || !whitelisted.has(name)) { item.remove(); return; }
+        if (!name || !whitelisted.has(name)) { 
+          toRemove.push(item); 
+          continue; 
+        }
       } else {
-        if (name && blocked.has(name)) { item.remove(); return; }
+        if (name && blocked.has(name)) { 
+          toRemove.push(item); 
+          continue; 
+        }
       }
       // Video-based removal
       const info = getVideoInfo(item);
       const id = info.id;
-      if (!whitelistModeEnabled && id && blockedVideos[id]) { item.remove(); return; }
+      if (!whitelistModeEnabled && id && blockedVideos[id]) { 
+        toRemove.push(item); 
+        continue; 
+      }
       // Title/channel-regex based removal
       const title = (item.dataset.detubeVidTitle || info.title || '').trim();
       const channelName = (item.dataset.detube || '').trim();
-      if (!whitelistModeEnabled && title && blockedTitlePatterns.length > 0) {
-        for (const pat of blockedTitlePatterns) {
+      if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
+        for (const patternObj of blockedTitlePatterns) {
           try {
-            const re = new RegExp(pat, 'i');
-            if (re.test(title) || (channelName && re.test(channelName))) {
-              item.remove();
-              return;
+            const re = new RegExp(patternObj.pattern, 'i');
+            const scope = patternObj.scope || 'both';
+            
+            let shouldRemove = false;
+            
+            if (scope === 'channel' && channelName && re.test(channelName)) {
+              shouldRemove = true;
+            } else if (scope === 'title' && title && re.test(title)) {
+              shouldRemove = true;
+            } else if (scope === 'both' && (
+              (title && re.test(title)) || 
+              (channelName && re.test(channelName))
+            )) {
+              shouldRemove = true;
+            }
+            
+            if (shouldRemove) {
+              toRemove.push(item);
+              break; // Exit pattern loop
             }
           } catch (err) {
             // invalid pattern, doesn't matter, skip
           }
         }
       }
-    });
+    }
+    
+    // Remove all marked elements in batch
+    for (const item of toRemove) {
+      item.remove();
+    }
   }
 
   function applyCSS() {
@@ -497,7 +566,7 @@
     const span = document.createElement('span');
     span.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     span.setAttribute('role', 'text');
-    span.textContent = ` 🚫    Block ${channel}`; // This is hilarious
+    span.textContent = `\u00A0🚫\u00A0\u00A0 Block ${channel}`; // This is hilarious
 
     titleWrapper.appendChild(span);
     textWrapper.appendChild(titleWrapper);
@@ -539,7 +608,7 @@
     const vSpan = document.createElement('span');
     vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     vSpan.setAttribute('role', 'text');
-    vSpan.textContent = ` 🚧    Block This Video`;
+    vSpan.textContent = `\u00A0🚧\u00A0\u00A0 Block This Video`;
 
     vTitleWrapper.appendChild(vSpan);
     vTextWrapper.appendChild(vTitleWrapper);
@@ -576,7 +645,7 @@
     const wSpan = document.createElement('span');
     wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
     wSpan.setAttribute('role', 'text');
-    wSpan.textContent = ` ⚪    Whitelist ${channel}`;
+    wSpan.textContent = `\u00A0⚪\u00A0\u00A0 Whitelist ${channel}`;
 
     wTitleWrapper.appendChild(wSpan);
     wTextWrapper.appendChild(wTitleWrapper);
@@ -663,7 +732,7 @@
     const videoInfo = ref ? getVideoInfo(ref) : { id: '', title: '' };
 
     // Block Channel
-    const blockChannelItem = createPaperItem(`🚫  Block ${channel}`, () => {
+    const blockChannelItem = createPaperItem(`\u00A0🚫\u00A0\u00A0 Block ${channel}`, () => {
       blocked.add(channel);
       saveBlocked();
       applyCSS();
@@ -674,7 +743,7 @@
     // Block This Video (if id available)
     let blockVideoItem = null;
     if (videoInfo.id) {
-      blockVideoItem = createPaperItem('🚧  Block This Video', () => {
+      blockVideoItem = createPaperItem('\u00A0🚧\u00A0\u00A0 Block This Video', () => {
         const id = videoInfo.id;
         const title = videoInfo.title || id;
         blockedVideos[id] = title;
@@ -687,7 +756,7 @@
     }
 
     // Whitelist Channel
-    const whitelistItem = createPaperItem(`⚪  Whitelist ${channel}`, () => {
+    const whitelistItem = createPaperItem(`\u00A0⚪\u00A0\u00A0 Whitelist ${channel}`, () => {
       whitelisted.add(channel);
       saveWhitelist();
       if (whitelistModeEnabled) {
@@ -829,14 +898,15 @@
       </div>
     `).join('');
     const patternsArray = blockedTitlePatterns.slice();
-    const patternItems = patternsArray.map(pattern => `
-      <div class="channel-item" data-pattern="${pattern.replace(/"/g, '&quot;')}">
-        <span class="channel-name">${pattern.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
-        <button class="unblock-btn" onclick="removePattern(decodeURIComponent('${encodeURIComponent(pattern)}'))">
-          <span>✕</span>
-        </button>
-      </div>
-    `).join('');
+    const patternItems = patternsArray.map(patternObj => {
+    const displayText = (patternObj.scope !== 'both' ? `[${patternObj.scope}]\u00A0\u00A0` : '[both]\u00A0\u00A0') + patternObj.pattern;
+    return `
+    <div class="channel-item" data-pattern="${patternObj.pattern.replace(/"/g, '&quot;')}" data-scope="${patternObj.scope}">
+      <span class="channel-name">${displayText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+      <button class="unblock-btn" onclick="removePattern(decodeURIComponent('${encodeURIComponent(patternObj.pattern)}'), '${patternObj.scope}')">
+        <span>✕</span>
+      </button>
+    </div>`}).join('');
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -863,6 +933,18 @@
             .container {
                 background: rgba(255, 255, 255, 0.95);
                 color: #2c3e50;
+            }
+
+            #pattern-scope {
+                background: #f5f5f5;
+                border: 1px solid #f5f5f5;
+                color: #2e2e2e;
+            }
+
+            #pattern-input {
+                background: #f5f5f5;
+                border: 1px solid #f5f5f5;
+                color: #2e2e2e;
             }
 
             .header {
@@ -913,6 +995,18 @@
 
             .container {
                 background: rgba(30, 30, 30, 0.95);
+                color: #f5f5f5;
+            }
+
+            #pattern-scope {
+                background: #2e2e2e;
+                border: 1px solid #2e2e2e;
+                color: #f5f5f5;
+            }
+
+            #pattern-input {
+                background: #2e2e2e;
+                border: 1px solid #2e2e2e;
                 color: #f5f5f5;
             }
 
@@ -1155,6 +1249,15 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
         }
 
+        .footer-link {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
         .channel-name {
             font-weight: 600;
             flex: 1;
@@ -1168,6 +1271,12 @@
             padding-top: 0;
             padding-bottom: 0;
             margin-bottom: 0;
+        }
+
+        #pattern-scope {
+            padding: 7px 8px;
+            border-radius: 5px;
+            width: 120px;
         }
 
         .unblock-btn {
@@ -1262,12 +1371,17 @@
               </label>
               <span>Whitelist Mode</span>
             </div>
-            <button class="btn" onclick="exportData()">Export</button>
-            <button class="btn" onclick="triggerImport()">Import</button>
+            <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
+            <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
             ${whitelistModeEnabled ? '' : `
             <div class="pattern-row" style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
-              <input id="pattern-input" type="text" placeholder="Block Video Titles via Regex (JavaScript)" style="flex:1; padding:8px; border-radius:5px; border:1px solid #ccc;">
+              <input id="pattern-input" type="text" placeholder="Block via Regex (JavaScript)" style="flex:1; padding:8px; border-radius:5px;">
+              <select id="pattern-scope" title="Toggle the scope to apply the pattern to">
+                  <option value="channel">Channels</option>
+                  <option value="title" selected>Video Titles</option>
+                  <option value="both">Both</option>
+              </select>
               <button class="btn" onclick="addPattern()">Add</button>
             </div>`}
         </div>
@@ -1319,8 +1433,10 @@
               ` : patternItems}
             `}
         </div>
-        <div class="footer" style="display:flex; align-items:center; padding: 12px 20px;">
+        <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
           <span>deTube Blocker ${version}</span>
+          <span><a class="footer-link" href="https://github.com/polymegos/deTube_channel_blocker" target="_blank">Help & Feedback</a></span>
+          <span><a class="footer-link" href="https://greasyfork.org/scripts/545112-detube-disable-ai-audio" target="_blank">Disable AI Translations</a></span>
         </div>
     </div>
 
@@ -1451,7 +1567,20 @@
                 } else if (data && typeof data === 'object') {
                   if (Array.isArray(data.blockedNames)) names = data.blockedNames;
                   if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
-                  if (Array.isArray(data.blockedTitlePatterns)) patterns = data.blockedTitlePatterns.filter(p => typeof p === 'string');
+                  if (Array.isArray(data.blockedTitlePatterns)) {
+                    // Handle both old format (strings) and new format (objects)
+                    patterns = data.blockedTitlePatterns.map(p => {
+                      if (typeof p === 'string') {
+                        return { pattern: p, scope: 'both' };
+                      } else if (typeof p === 'object' && p.pattern) {
+                        return {
+                          pattern: p.pattern,
+                          scope: p.scope || 'both'
+                        };
+                      }
+                      return null;
+                    }).filter(p => p !== null);
+                  }
                   if (Array.isArray(data.whitelisted)) whitelist = data.whitelisted.filter(x => typeof x === 'string');
                 }
                 if (!Array.isArray(names)) throw new Error('Invalid format for channels');
@@ -1485,25 +1614,28 @@
 
         function addPattern() {
           const input = document.getElementById('pattern-input');
+          const scopeSelect = document.getElementById('pattern-scope');
           const val = (input.value || '').trim();
+          const scope = scopeSelect.value;
+
           if (!val) return alert('Please enter a pattern');
           try {
             new RegExp(val); // validate
           } catch (e) {
             return alert('Invalid regex: ' + e.message);
           }
-          window.name = JSON.stringify({ action: 'addPattern', pattern: val });
+          window.name = JSON.stringify({ action: 'addPattern', pattern: val, scope: scope });
           input.value = '';
           try { refreshPage(); } catch(_) {}
         }
 
-        function removePattern(pattern) {
+        function removePattern(pattern, scope = 'both') {
           if (!confirm('Remove pattern "' + pattern + '"?')) return;
           // Find item by comparing dataset to avoid CSS escaping pitfalls
           const item = Array.from(document.querySelectorAll('.channel-item'))
-            .find(el => (el.dataset && el.dataset.pattern) === String(pattern));
+            .find(el => (el.dataset && el.dataset.pattern) === String(pattern) && (el.dataset.scope || 'both') === scope);
           const finish = () => {
-            window.name = JSON.stringify({ action: 'removePattern', pattern });
+            window.name = JSON.stringify({ action: 'removePattern', pattern, scope });
             setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
           };
           if (item) {
@@ -1596,10 +1728,35 @@
                 whitelisted.add(w); wAdded++;
               }
               // Merge title patterns
-              const pats = Array.isArray(action.data.blockedTitlePatterns) ? action.data.blockedTitlePatterns.filter(p => typeof p === 'string') : [];
+              let pats = [];
+              if (Array.isArray(action.data.blockedTitlePatterns)) {
+                  // Handle both old format (strings) and new format (objects)
+                  pats = action.data.blockedTitlePatterns.map(p => {
+                  if (typeof p === 'string') {
+                      return { pattern: p, scope: 'both' };
+                  } else if (typeof p === 'object' && p.pattern) {
+                      return {
+                      pattern: p.pattern,
+                      scope: p.scope || 'both'
+                      };
+                  }
+                  return null;
+                  }).filter(p => p !== null);
+              }
+              
               let pAdded = 0, pDupes = 0;
-              for (const pat of pats) {
-                if (!blockedTitlePatterns.includes(pat)) { blockedTitlePatterns.push(pat); pAdded++; } else { pDupes++; }
+              for (const patObj of pats) {
+                  // Check if pattern with same scope already exists
+                  const exists = blockedTitlePatterns.some(p => 
+                  p.pattern === patObj.pattern && p.scope === patObj.scope
+                  );
+                  
+                  if (!exists) {
+                  blockedTitlePatterns.push(patObj);
+                  pAdded++;
+                  } else {
+                  pDupes++;
+                  }
               }
               saveBlocked();
               saveBlockedVideos();
@@ -1656,20 +1813,33 @@
             // Ask manager page to refresh so the correct list and controls are shown
             try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'addPattern' && action.pattern) {
-            if (!blockedTitlePatterns.includes(action.pattern)) {
-              blockedTitlePatterns.push(action.pattern);
+              const newPattern = {
+                  pattern: action.pattern,
+                  scope: action.scope || 'both'
+              };
+              
+              // Check if pattern with same scope already exists
+              const exists = blockedTitlePatterns.some(p => 
+              p.pattern === newPattern.pattern && p.scope === newPattern.scope
+              );
+              
+              if (!exists) {
+                  blockedTitlePatterns.push(newPattern);
+                  saveBlockedTitlePatterns();
+                  removeBlockedVideos();
+                  log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
+              }
+              // Refresh manager to show the newly added pattern (and allow any UI animation)
+              try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
+          } else if (action.action === 'removePattern' && action.pattern) {
+              const scope = action.scope || 'both';
+              blockedTitlePatterns = blockedTitlePatterns.filter(p => 
+              !(p.pattern === action.pattern && p.scope === scope)
+              );
               saveBlockedTitlePatterns();
               removeBlockedVideos();
-              log(`[>] Added title pattern: ${action.pattern}`);
-            }
-            // Refresh manager to show the newly added pattern (and allow any UI animation)
-            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
-          } else if (action.action === 'removePattern' && action.pattern) {
-            blockedTitlePatterns = blockedTitlePatterns.filter(p => p !== action.pattern);
-            saveBlockedTitlePatterns();
-            removeBlockedVideos();
-            log(`[>] Removed title pattern: ${action.pattern}`);
-            newTab.window.name = '';
+              log(`[>] Removed title pattern: ${action.pattern} (${scope})`);
+              newTab.window.name = '';
           } else if (action.action === 'removeFromWhitelist' && action.channel) {
             whitelisted.delete(action.channel);
             saveWhitelist();
@@ -1692,28 +1862,115 @@
   }
 
   function observeNewVideos() {
+    // Debounce processing to avoid excessive calls
+    let processingTimeout = null;
+    
     const observer = new MutationObserver(mutations => {
-      let newVideosFound = false;
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (!(node instanceof HTMLElement)) continue;
-          if (node.matches('yt-lockup-view-model') || node.querySelector('yt-lockup-view-model')) {
-            newVideosFound = true;
+      // Clear existing timeout to debounce
+      if (processingTimeout) {
+        clearTimeout(processingTimeout);
+      }
+      
+      // Schedule processing with debounce
+      processingTimeout = setTimeout(() => {
+        let newVideosFound = false;
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (!(node instanceof HTMLElement)) continue;
+            // More specific selectors for better performance
+            if (node.matches(VIDEO_SELECTORS.join(',')) || 
+                node.querySelector && node.querySelector(VIDEO_SELECTORS.join(','))) {
+              newVideosFound = true;
+              break;
+            }
+          }
+          if (newVideosFound) break;
+        }
+        
+        if (newVideosFound) {
+          // Only process newly added videos instead of all videos
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (!(node instanceof HTMLElement)) continue;
+              if (node.matches(VIDEO_SELECTORS.join(','))) {
+                if (tagVideo(node)) {
+                  // Apply filtering to just this video
+                  filterVideo(node);
+                }
+              } else if (node.querySelector) {
+                // Process child videos
+                const videos = node.querySelectorAll(VIDEO_SELECTORS.join(','));
+                for (const video of videos) {
+                  if (tagVideo(video)) {
+                    filterVideo(video);
+                  }
+                }
+              }
+            }
           }
         }
-      }
-      if (newVideosFound) {
-        tagAllVideos();
-        applyCSS();
-        removeBlockedVideos();
-      }
+      }, 100); // 100ms debounce
     });
 
     observer.observe(document.body, {
       childList: true,
       subtree: true
     });
-
+    
+    // Add filterVideo function for single video processing
+    function filterVideo(video) {
+      // Channel-based removal
+      const name = video.dataset.detube && video.dataset.detube.trim();
+      if (whitelistModeEnabled) {
+        // In whitelist mode: remove anything NOT in the whitelist
+        if (!name || !whitelisted.has(name)) { video.remove(); return; }
+      } else {
+        if (name && blocked.has(name)) { video.remove(); return; }
+      }
+      // Video-based removal
+      const info = getVideoInfo(video);
+      const id = info.id;
+      if (!whitelistModeEnabled && id && blockedVideos[id]) { video.remove(); return; }
+      // Title/channel-regex based removal
+      const title = (video.dataset.detubeVidTitle || info.title || '').trim();
+      const channelName = (video.dataset.detube || '').trim();
+      if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
+        // Reuse regex cache from improvement 4
+        if (!this.regexCache) this.regexCache = new Map();
+        
+        for (const patternObj of blockedTitlePatterns) {
+          try {
+            const cacheKey = patternObj.pattern;
+            let re = this.regexCache.get(cacheKey);
+            if (!re) {
+              re = new RegExp(patternObj.pattern, 'i');
+              this.regexCache.set(cacheKey, re);
+            }
+            
+            const scope = patternObj.scope || 'both';
+            let shouldRemove = false;
+            
+            if (scope === 'channel' && channelName && re.test(channelName)) {
+              shouldRemove = true;
+            } else if (scope === 'title' && title && re.test(title)) {
+              shouldRemove = true;
+            } else if (scope === 'both' && (
+              (title && re.test(title)) || 
+              (channelName && re.test(channelName))
+            )) {
+              shouldRemove = true;
+            }
+            
+            if (shouldRemove) {
+              video.remove();
+              return;
+            }
+          } catch (err) {
+            // invalid pattern, doesn't matter, skip
+          }
+        }
+      }
+    }
   }
 
   // Handler for three-dot menu clicks
