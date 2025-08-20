@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.7 Dev
+// @version         0.1.7
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -65,7 +65,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.7 Dev";
+  const version = "0.1.7";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -228,7 +228,9 @@
   }
 
   function redirectIfShortsURL(url) {
-    if (url.match(/^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/)) {
+    const shortsRegex = /^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/;
+    const match = url.match(shortsRegex);
+    if (match) {
       window.location.replace(`https://www.youtube.com/watch?v=${match[1]}${window.location.search || ''}`);
     }
   }
@@ -372,19 +374,16 @@
     }
 
     return { id, title };
-}
+  }
 
   function tagAllVideos() {
-    const els = document.querySelectorAll([
-      'yt-lockup-view-model',
-      'ytd-video-renderer',
-      'ytd-compact-video-renderer',
-      'ytd-grid-video-renderer',
-      'ytd-rich-item-renderer'
-    ].join(','));
+    const els = document.querySelectorAll(VIDEO_SELECTORS.join(','));
+    const len = els.length;
     let count = 0;
-    for (let el of els) if (tagVideo(el)) count++;
-    //log(`Tagged ${count}/${els.length} videos.`);
+    for (let i = 0; i < len; i++) {
+      if (tagVideo(els[i])) count++;
+    }
+    // log(`Tagged ${count}/${len} videos.`);
   }
 
   function removeBlockedVideos() {
@@ -1354,8 +1353,8 @@
         </div>
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
-            <button class="btn danger" onclick="clearAll()" ${(blockedArray.length + videosArray.length) === 0 ? 'disabled' : ''}>
-                Clear (${blockedArray.length + videosArray.length + patternsArray.length})
+            <button class="btn danger" onclick="clearAll()" ${(blockedArray.length + videosArray.length + patternsArray.length + whitelistArray.length) === 0 ? 'disabled' : ''}>
+                Clear (${blockedArray.length + videosArray.length + patternsArray.length + whitelistArray.length})
             </button>
             <div class="toggle" title="Toggle Blocking of Short-Form Content">
               <label class="switch">
@@ -1442,83 +1441,137 @@
 
     <script>
         function refreshPage() {
-            try {
-                const pending = JSON.parse(window.name || 'null');
-                if (pending && pending.action && pending.action !== 'refreshManager') {
-                    // Defer refresh, avoid running over pending unblock / clearAll / toggle
-                    setTimeout(() => { window.name = JSON.stringify({ action: 'refreshManager' }); }, 600);
-                    return;
+          try {
+            const pending = JSON.parse(window.name || 'null');
+            if (pending && pending.action && pending.action !== 'refreshManager') {
+              let retries = 0;
+              const waitForClear = () => {
+                try {
+                  const current = JSON.parse(window.name || 'null');
+                  if (!current || !current.action) {
+                    window.name = JSON.stringify({ action: 'refreshManager' });
+                  } else if (retries < 10) { // 10x200ms max wait
+                    retries++;
+                    setTimeout(waitForClear, 200);
+                  } else {
+                    // Force refresh as ultima ratio
+                    window.name = JSON.stringify({ action: 'refreshManager' });
+                  }
+                } catch (_) {
+                  if (retries < 10) { // also 10x200ms max wait
+                    retries++;
+                    setTimeout(waitForClear, 200);
+                  } else {
+                    window.name = JSON.stringify({ action: 'refreshManager' });
+                  }
                 }
-            } catch (_) { /* idc about parse errors */ }
-            window.name = JSON.stringify({ action: 'refreshManager' });
+              };
+              waitForClear();
+              return;
+            }
+          } catch (_) { /* idc */ }
+          window.name = JSON.stringify({ action: 'refreshManager' });
         }
 
         function unblockChannel(channelName) {
-            if (!confirm('Are you sure you want to unblock "' + channelName + '"?')) return;
-            const item = document.querySelector('.channel-item[data-channel="' + channelName.replace(/"/g, '\\"') + '"]');
-            const finish = () => {
-                window.name = JSON.stringify({ action: 'unblock', channel: channelName });
-                // Refresh only after the animation completed and action was posted
-                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-            };
-            if (item) {
-                let done = false;
-                const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
-                item.addEventListener('transitionend', onEnd);
-                setTimeout(onEnd, 400);
-                requestAnimationFrame(() => item.classList.add('removing'));
-            } else {
-                finish();
+          // Remove channel from blocked list
+          if (!confirm('Are you sure you want to unblock "' + channelName + '"?')) return;
+          const item = document.querySelector('.channel-item[data-channel="' + channelName.replace(/"/g, '\\"') + '"]');
+          const finish = () => {
+            try {
+              // Post unblock action
+              window.name = JSON.stringify({ action: "unblock", channel: channelName });
+              // Let UI finish animation before refreshing
+              setTimeout(() => {
+                try { refreshPage(); } catch (_) {}
+              }, 200);
+            } catch (_) {
+              // Even if posting fails, still attempt refresh
+              setTimeout(() => {
+                try { refreshPage(); } catch (_) {}
+              }, 200);
             }
+          };
+          if (item) {
+            let finished = false;
+            const complete = () => {
+              if (finished) return;
+              finished = true;
+              item.removeEventListener("transitionend", complete);
+              finish();
+            };
+            item.addEventListener("transitionend", complete, { once: true });
+            setTimeout(complete, 1000); // 1s max wait
+            requestAnimationFrame(() => item.classList.add("removing"));
+          } else {
+            finish();
+          }
         }
+            
         function unblockVideo(videoId) {
-            if (!confirm('Unblock this video?')) return;
-            const item = document.querySelector('.channel-item[data-video-id="' + videoId.replace(/"/g, '\\"') + '"]');
-            const finish = () => {
-                window.name = JSON.stringify({ action: 'unblockVideo', videoId });
-                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-            };
-            if (item) {
-                let done = false;
-                const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
-                item.addEventListener('transitionend', onEnd);
-                setTimeout(onEnd, 400);
-                requestAnimationFrame(() => item.classList.add('removing'));
-            } else {
-                finish();
-            }
+          if (!confirm('Are you sure you want to unblock this video?')) return;
+          const item = document.querySelector('.channel-item[data-video-id="' + videoId.replace(/"/g, '\\"') + '"]');
+          const finish = () => {
+              try {
+                  // Post unblock action
+                  window.name = JSON.stringify({ action: 'unblockVideo', videoId });
+              } catch (_) {
+                  // Ignore errors
+              }
+              // Let UI finish animation before refreshing
+              setTimeout(() => {
+                  try { refreshPage(); } catch (_) {}
+              }, 200);
+          };
+
+          if (item) {
+              let finished = false;
+              const complete = () => {
+                  if (finished) return;
+                  finished = true;
+                  item.removeEventListener('transitionend', complete);
+                  finish();
+              };
+
+              item.addEventListener('transitionend', complete, { once: true });
+              setTimeout(complete, 1000); // Max 1s wait
+              requestAnimationFrame(() => item.classList.add('removing'));
+          } else {
+              finish();
+          }
         }
 
         function clearAll() {
-            if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels, ${videosArray.length} videos and ${patternsArray.length} patterns? This cannot be undone.')) return;
+            if (!confirm('Are you sure you want to clear all ${blockedArray.length} channels, ${videosArray.length} videos, ${patternsArray.length} patterns and ${whitelistArray.length} whitelisted channels? This cannot be undone.')) return;
             const items = Array.from(document.querySelectorAll('.channel-item'));
-            if (items.length === 0) {
-                window.name = JSON.stringify({ action: 'clearAll' });
-                return;
-            }
-            items.forEach((el, i) => setTimeout(() => el.classList.add('removing'), i * 25));
-            const totalAnimMs = 300 + items.length * 25; // match CSS transition + stagger
-            setTimeout(() => {
-                // Post action after animations have (mostly) completed
-                window.name = JSON.stringify({ action: 'clearAll' });
-                // Then refresh the UI slightly after to allow parent to process
-                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-            }, totalAnimMs);
-        }
+            const finish = () => {
+                try {
+                    window.name = JSON.stringify({ action: 'clearAll' });
+                } catch (_) {/* idc */}
+                setTimeout(() => {
+                    try { refreshPage(); } catch (_) { /* idc */ }
+                }, 200);
+            };
 
-        function clearAllWhitelist() {
-            if (!confirm('Are you sure you want to clear all ${whitelistArray.length} whitelisted channels? This cannot be undone.')) return;
-            const items = Array.from(document.querySelectorAll('.channel-item'));
             if (items.length === 0) {
-                window.name = JSON.stringify({ action: 'clearAllWhitelist' });
+                finish();
                 return;
             }
-            items.forEach((el, i) => setTimeout(() => el.classList.add('removing'), i * 25));
-            const totalAnimMs = 300 + items.length * 25;
-            setTimeout(() => {
-                window.name = JSON.stringify({ action: 'clearAllWhitelist' });
-                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-            }, totalAnimMs);
+
+            let completed = 0;
+            const markComplete = (el, handler) => {
+                el.removeEventListener('transitionend', handler);
+                el.remove(); // actually remove from DOM
+                completed++;
+                if (completed >= items.length) finish();
+            };
+
+            items.forEach((el, i) => {
+                const handler = () => markComplete(el, handler);
+                el.addEventListener('transitionend', handler, { once: true });
+                setTimeout(handler, 600 + i * 25);
+                setTimeout(() => requestAnimationFrame(() => el.classList.add('removing')), i * 25);
+            });
         }
 
         function exportData() {
@@ -1545,122 +1598,151 @@
         }
 
         function triggerImport() {
-          const input = document.getElementById('import-file');
-          if (!input) return;
-          input.value = '';
-          input.onchange = () => {
-            const file = input.files && input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-              try {
-                const raw = String(reader.result || '').trim();
-                if (!raw) throw new Error('Empty file');
-                const data = JSON.parse(raw);
+            const input = document.getElementById('import-file');
+            if (!input) return;
 
-                // Default values
-                let names = [];
-                let videos = {};
-                let patterns = [];
-                let whitelist = [];
+            input.value = '';
+            input.onchange = () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
 
-                if (Array.isArray(data)) {
-                  // Legacy format
-                  names = data;
+                const reader = new FileReader();
 
-                } else if (data && typeof data === 'object') {
-                  if (data.blockedNames || data.blockedVideos || data.blockedTitlePatterns || data.whitelisted) {
-                    // Standard format support
-                    if (Array.isArray(data.blockedNames)) names = data.blockedNames;
-                    if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
-                    if (Array.isArray(data.blockedTitlePatterns)) {
-                      patterns = data.blockedTitlePatterns.map(p => {
-                        if (typeof p === 'string') {
-                          return { pattern: p, scope: 'both' };
-                        } else if (typeof p === 'object' && p.pattern) {
-                          return { pattern: p.pattern, scope: p.scope || 'both' };
-                        }
-                        return null;
-                      }).filter(p => p !== null);
-                    }
-                    if (Array.isArray(data.whitelisted)) whitelist = data.whitelisted.filter(x => typeof x === 'string');
+                reader.onload = () => {
+                    try {
+                        const raw = String(reader.result || '').trim();
+                        if (!raw) throw new Error('Empty file');
 
-                  } else if (data.filterData && typeof data.filterData === 'object') {
-                    // Supporting a new format from an older plugin
-                    const fd = data.filterData;
-                    // Channels (by name for now)
-                    if (Array.isArray(fd.channelId)) {
-                      names = fd.channelId
-                        .map(x => {
-                          if (typeof x !== 'string') return null;
-                          const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*?)\\)/);
-                          return match ? match[1].replace('@', '').trim() : null;
-                        })
-                        .filter(x => x); // remove nulls
-                    }
-                    // Videos (convert to object -> id:title)
-                    if (Array.isArray(fd.videoId)) {
-                      let lastTitle = null;
-                      fd.videoId.forEach(x => {
-                        if (typeof x !== 'string' || !x.trim()) return;
+                        const data = JSON.parse(raw);
 
-                        if (x.startsWith('//')) {
-                          // Extract title from comment
-                          const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*)\\)/);
-                          if (match) {
-                            let title = match[1].trim();
-                            // Remove trailing timestamp in parentheses, e.g. "(10/23/2024, 5:28:31 PM)"
-                            title = title.replace(/\\(\\d{1,2}\\/\\d{1,2}\\/\\d{4},\\s*\\d{1,2}:\\d{2}:\\d{2}\\s*(AM|PM)\\)*$/i, '').trim();
-                            // Such a weird error, but this seems really necessary
-                            if (title.includes(')') && !title.includes('(')) {
-                              title = title.replace(/\\)$/, '').trim();
+                        // Default values
+                        let names = [];
+                        let videos = {};
+                        let patterns = [];
+                        let whitelist = [];
+
+                        if (Array.isArray(data)) {
+                            // Legacy format
+                            names = data;
+
+                        } else if (data && typeof data === 'object') {
+                            if (data.blockedNames || data.blockedVideos || data.blockedTitlePatterns || data.whitelisted) {
+                                // Standard format
+                                if (Array.isArray(data.blockedNames)) names = data.blockedNames;
+                                if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
+                                if (Array.isArray(data.blockedTitlePatterns)) {
+                                    patterns = data.blockedTitlePatterns.map(p => {
+                                        if (typeof p === 'string') {
+                                            return { pattern: p, scope: 'both' };
+                                        } else if (typeof p === 'object' && p.pattern) {
+                                            return { pattern: p.pattern, scope: p.scope || 'both' };
+                                        }
+                                        return null;
+                                    }).filter(Boolean);
+                                }
+                                if (Array.isArray(data.whitelisted)) {
+                                    whitelist = data.whitelisted.filter(x => typeof x === 'string');
+                                }
+
+                            } else if (data.filterData && typeof data.filterData === 'object') {
+                                // Old plugin format
+                                const fd = data.filterData;
+
+                                // Channels (legacy names)
+                                if (Array.isArray(fd.channelId)) {
+                                    names = fd.channelId
+                                        .map(x => {
+                                            if (typeof x !== 'string') return null;
+                                            const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*?)\\)/);
+                                            return match ? match[1].replace('@', '').trim() : null;
+                                        })
+                                        .filter(Boolean);
+                                }
+
+                                // Videos
+                                if (Array.isArray(fd.videoId)) {
+                                    let lastTitle = null;
+                                    fd.videoId.forEach(x => {
+                                        if (typeof x !== 'string' || !x.trim()) return;
+                                        if (x.startsWith('//')) {
+                                            const match = x.match(/^\\/\\/ Blocked by context menu\\s*\\((.*)\\)/);
+                                            if (match) {
+                                                let title = match[1].trim();
+                                                title = title.replace(
+                                                    /\\(\\d{1,2}\\/\\d{1,2}\\/\\d{4},\\s*\\d{1,2}:\\d{2}:\\d{2}\\s*(AM|PM)\\)*$/i,
+                                                    ''
+                                                ).trim();
+                                                if (title.includes(')') && !title.includes('(')) {
+                                                    title = title.replace(/\\)$/, '').trim();
+                                                }
+                                                lastTitle = title;
+                                            }
+                                        } else {
+                                            if (lastTitle) {
+                                                videos[x] = lastTitle;
+                                                lastTitle = null;
+                                            } else {
+                                                videos[x] = '';
+                                            }
+                                        }
+                                    });
+                                }
+
+                                // Title Patterns
+                                if (Array.isArray(fd.title)) {
+                                    patterns = fd.title
+                                        .filter(x => typeof x === 'string' && x.trim())
+                                        .map(x => ({ pattern: x, scope: 'title' }));
+                                }
+
+                                // Channel Patterns
+                                if (Array.isArray(fd.channelName)) {
+                                    patterns = patterns.concat(
+                                        fd.channelName
+                                          .filter(x => typeof x === 'string' && x.trim())
+                                          .map(x => ({ pattern: x, scope: 'channel' }))
+                                    );
+                                }
                             }
-                            lastTitle = title;
-                          }
-                        } else {
-                          // This is a video ID -> link with last title (if available)
-                          if (lastTitle) {
-                            videos[x] = lastTitle;
-                            lastTitle = null; // reset for next
-                          } else {
-                            videos[x] = '';
-                          }
                         }
-                      });
+
+                        if (!Array.isArray(names)) {
+                            throw new Error('Invalid format for channels');
+                        }
+
+                        const finish = () => {
+                            try {
+                                window.name = JSON.stringify({
+                                    action: 'importData',
+                                    data: {
+                                        blockedNames: names,
+                                        blockedVideos: videos,
+                                        blockedTitlePatterns: patterns,
+                                        whitelisted: whitelist
+                                    }
+                                });
+                            } catch (_) {
+                                // Ignore posting errors
+                            }
+                            setTimeout(() => {
+                                try { refreshPage(); } catch (_) {}
+                            }, 200);
+                        };
+                        finish();
+
+                    } catch (e) {
+                        try { alert('Import failed: ' + e.message); } catch (_) {}
+                    } finally {
+                        input.value = ''; // reset for next run
                     }
+                };
 
-                    // Title Patterns
-                    if (Array.isArray(fd.title)) {
-                      patterns = fd.title.filter(x => typeof x === 'string' && x.trim()).map(x => ({ pattern: x, scope: 'title' }));
-                    }
-
-                    // Channel Patterns
-                    if (Array.isArray(fd.channelName)) {
-                      patterns = patterns.concat(fd.channelName.filter(x => typeof x === 'string' && x.trim()).map(x => ({ pattern: x, scope: 'channel' })));
-                    }
-                  }
-                }
-
-                if (!Array.isArray(names)) throw new Error('Invalid format for channels');
-
-                window.name = JSON.stringify({
-                  action: 'importData',
-                  data: {
-                    blockedNames: names,
-                    blockedVideos: videos,
-                    blockedTitlePatterns: patterns,
-                    whitelisted: whitelist
-                  }
-                });
-
-                try { refreshPage(); } catch(_) {}
-              } catch (e) {
-                try { alert('Import failed: ' + e); } catch(_) {}
-              }
+                reader.onerror = () => {
+                    alert('Failed to read file');
+                };
+                reader.readAsText(file);
             };
-            reader.readAsText(file);
-          };
-          input.click();
+            input.click();
         }
 
         // Shorts + Whitelist toggle handling
@@ -1680,59 +1762,122 @@
         });
 
         function addPattern() {
-          const input = document.getElementById('pattern-input');
-          const scopeSelect = document.getElementById('pattern-scope');
-          const val = (input.value || '').trim();
-          const scope = scopeSelect.value;
+            const input = document.getElementById('pattern-input');
+            const scopeSelect = document.getElementById('pattern-scope');
+            const val = (input.value || '').trim();
+            const scope = scopeSelect.value;
 
-          if (!val) return alert('Please enter a pattern');
-          try {
-            new RegExp(val); // validate
-          } catch (e) {
-            return alert('Invalid regex: ' + e.message);
-          }
-          window.name = JSON.stringify({ action: 'addPattern', pattern: val, scope: scope });
-          input.value = '';
-          try { refreshPage(); } catch(_) {}
+            if (!val || val.length === 0) {
+                alert('Please enter a pattern');
+                return;
+            }
+
+            try {
+                new RegExp(val); // validate regex
+            } catch (e) {
+                alert('Invalid regex: ' + e.message);
+                return;
+            }
+
+            const finish = () => {
+                try {
+                    // Post addPattern action
+                    window.name = JSON.stringify({ action: 'addPattern', pattern: val, scope });
+                } catch (_) {
+                    // Ignore errors
+                }
+                // Refresh after a short delay
+                setTimeout(() => {
+                    try { refreshPage(); } catch (_) {}
+                }, 200);
+            };
+
+            input.value = '';
+
+            requestAnimationFrame(() => {
+                const newItem = document.querySelector('.pattern-item[data-pattern="' + val.replace(/"/g, '\\"') + '"]');
+                if (newItem) {
+                    let finished = false;
+                    const complete = () => {
+                        if (finished) return;
+                        finished = true;
+                        newItem.removeEventListener('transitionend', complete);
+                        finish();
+                    };
+
+                    newItem.addEventListener('transitionend', complete, { once: true });
+                    setTimeout(complete, 1000); // That's the fallback
+                    requestAnimationFrame(() => newItem.classList.add('adding'));
+                } else {
+                    finish();
+                }
+            });
         }
 
         function removePattern(pattern, scope = 'both') {
           if (!confirm('Remove pattern "' + pattern + '"?')) return;
-          // Find item by comparing dataset to avoid CSS escaping pitfalls
+          // Find item by dataset (while avoiding CSS escaping)
           const item = Array.from(document.querySelectorAll('.channel-item'))
-            .find(el => (el.dataset && el.dataset.pattern) === String(pattern) && (el.dataset.scope || 'both') === scope);
-          const finish = () => {
-            window.name = JSON.stringify({ action: 'removePattern', pattern, scope });
-            setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-          };
-          if (item) {
-            let done = false;
-            const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
-            item.addEventListener('transitionend', onEnd);
-            setTimeout(onEnd, 400);
-            requestAnimationFrame(() => item.classList.add('removing'));
-          } else {
-            finish();
-          }
-        }
+              .find(el =>
+                  (el.dataset && el.dataset.pattern) === String(pattern) &&
+                  (el.dataset.scope || 'both') === scope
+              );
 
-        function removeFromWhitelist(channelName) {
-            if (!confirm('Remove "' + channelName + '" from whitelist?')) return;
-            const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
-            const finish = () => {
-                window.name = JSON.stringify({ action: 'removeFromWhitelist', channel: channelName });
-                setTimeout(() => { try { refreshPage(); } catch(_) {} }, 150);
-            };
-            if (item) {
-                let done = false;
-                const onEnd = () => { if (done) return; done = true; item.removeEventListener('transitionend', onEnd); finish(); };
-                item.addEventListener('transitionend', onEnd);
-                setTimeout(onEnd, 400);
-                requestAnimationFrame(() => item.classList.add('removing'));
-            } else {
-                finish();
-            }
-        }
+          const finish = () => {
+              try {
+                  window.name = JSON.stringify({ action: 'removePattern', pattern, scope });
+              } catch (_) { /* idc */ }
+              setTimeout(() => {
+                  try { refreshPage(); } catch (_) { /* idc */ }
+              }, 200);
+          };
+
+          if (item) {
+              let finished = false;
+              const complete = () => {
+                  if (finished) return;
+                  finished = true;
+                  item.removeEventListener('transitionend', complete);
+                  item.remove(); // actually remove from DOM
+                  finish();
+              };
+
+              item.addEventListener('transitionend', complete, { once: true });
+              setTimeout(complete, 1000);
+              requestAnimationFrame(() => item.classList.add('removing'));
+          } else {
+              finish();
+          }
+      }
+
+      function removeFromWhitelist(channelName) {
+          if (!confirm('Remove "' + channelName + '" from whitelist?')) return;
+          const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
+          const finish = () => {
+              try {
+                  window.name = JSON.stringify({ action: 'removeFromWhitelist', channel: channelName });
+              } catch (_) { /* idc */ }
+              setTimeout(() => {
+                  try { refreshPage(); } catch (_) { /* idc */ }
+              }, 200);
+          };
+
+          if (item) {
+              let finished = false;
+              const complete = () => {
+                  if (finished) return;
+                  finished = true;
+                  item.removeEventListener('transitionend', complete);
+                  item.remove(); // ensure DOM cleanup
+                  finish();
+              };
+              item.addEventListener('transitionend', complete, { once: true });
+              setTimeout(complete, 1000); // Fallback
+              requestAnimationFrame(() => item.classList.add('removing'));
+          } else {
+              finish();
+          }
+      }
     </script>
   </body>
 </html>`;
@@ -1842,21 +1987,16 @@
             blocked.clear();
             blockedVideos = {};
             blockedTitlePatterns = [];
+            whitelisted.clear();
             saveBlocked();
             saveBlockedVideos();
             saveBlockedTitlePatterns();
+            saveWhitelist();
             applyCSS();
             tagAllVideos();
             removeBlockedVideos();
             log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear action again
-          } else if (action.action === 'clearAllWhitelist') {
-            whitelisted.clear();
-            saveWhitelist();
-            tagAllVideos();
-            removeBlockedVideos();
-            log('[>] Cleared whitelist');
-            newTab.window.name = '';
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
             const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML()], { type: 'text/html' }));
@@ -1916,12 +2056,10 @@
             newTab.window.name = '';
           }
         }
-      } catch (e) {
-        // Cross-origin errors are really to be expected here ...
-      }
+      } catch (e) { /* idc */}
     }, 500);
 
-    // Stop checking after ~5 minutes
+    // Stop checking after 5 minutes
     setTimeout(() => {
       clearInterval(checkForActions);
       URL.revokeObjectURL(url);
@@ -1976,7 +2114,7 @@
             }
           }
         }
-      }, 100); // 100ms debounce
+      }, 100); // debounce
     });
 
     observer.observe(document.body, {
