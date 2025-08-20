@@ -6,6 +6,7 @@
 
 **deTube Channel Blocker** is a userscript that hides videos you don't want to see.<br>
 If you're tired of certain videos or channels popping up in your recommendations, this lets you block them easily.
+The userscript is backwards-compatible wit blockTube config files. You can directly import them.
 
 For the videos in the suggested videos feed, you will notice a three-dot menu (`⋮`) to the right of each video's title.<br>
 After installing this userscript, that menu gives you new options inside that menu:
