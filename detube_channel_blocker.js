@@ -1,8 +1,9 @@
 // ==UserScript==
 // @name            deTube Block Channels
-// @name:de         deTube Kanäle blockieren
+// @name:el         deTube Αποκλεισμός καναλιών
 // @name:es         deTube Bloquear canales
 // @name:fr         deTube Bloquer des chaînes
+// @name:de         deTube Kanäle blockieren
 // @name:it         deTube Blocca canali
 // @name:pt         deTube Bloquear canais
 // @name:ru         deTube Блокировать каналы
@@ -22,6 +23,16 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
+// @name:id         deTube Blokir channel
+// @name:ms         deTube Sekat saluran
+// @name:uk         deTube Заблокувати канали
+// @name:cs         deTube Blokovat kanály
+// @name:hu         deTube Csatornák blokkolása
+// @name:ro         deTube Blochează canale
+// @name:bg         deTube Блокирай канали
+// @name:fa         deTube مسدود کردن کانال‌ها
+// @name:bn         deTube চ্যানেল ব্লক করুন
+// @name:sw         deTube Zuia vituo
 // @version         0.1.8 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
@@ -47,6 +58,16 @@
 // @description:hi  YT वीडियो मेनू में “चैनल ब्लॉक करें”, “वीडियो ब्लॉक करें” और “चैनल को व्हाइटलिस्ट में जोड़ें” विकल्प जोड़ता है। ब्लॉक किए गए चैनलों और वीडियो को स्वचालित रूप से छुपाता है। Shorts को भी ब्लॉक करता है।
 // @description:th  เพิ่มตัวเลือก “บล็อกช่อง”, “บล็อกวิดีโอ” และ “เพิ่มช่องในรายการที่ไวท์ลิสต์” ในเมนูวิดีโอของ YT ซ่อนวิดโอจากช่องและวิดีโอที่ถูกบล็อกโดยอัตโนมัติ และบล็อก Shorts ด้วย.
 // @description:vi  Thêm tùy chọn "Chặn kênh", "Chặn video" và "Thêm kênh vào danh sách trắng" vào menu video của YT. Tự động ẩn video từ các kênh bị chặn và các video bị chặn. Cũng chặn cả Shorts.
+// @description:id  Menambahkan opsi “Blokir Channel”, “Blokir Video”, dan “Whitelist Channel” ke menu video YT. Secara otomatis menyembunyikan video dari channel dan video yang diblokir. Juga memblokir Shorts.
+// @description:ms  Menambah pilihan “Sekat Saluran”, “Sekat Video”, dan “Masukkan Saluran ke Senarai Putih” pada menu video YT. Menyembunyikan video daripada saluran dan video yang disekat secara automatik. Juga menyekat Shorts.
+// @description:uk  Додає в меню відео YT опції «Заблокувати канал», «Заблокувати відео» та «Додати канал до білого списку». Автоматично приховує відео з заблокованих каналів та окремих відео. Також блокує Shorts.
+// @description:cs  Přidává do nabídky videí YT možnosti „Blokovat kanál“, „Blokovat video“ a „Přidat kanál na whitelist“. Automaticky skrývá videa z blokovaných kanálů a jednotlivých videí. Blokuje také Shorts.
+// @description:hu  Hozzáadja a YT videómenükhöz a „Csatorna blokkolása”, „Videó blokkolása” és „Csatorna engedélyezése” lehetőségeket. Automatikusan elrejti a blokkolt csatornák és videók tartalmát. A Shorts-okat is blokkolja.
+// @description:ro  Adaugă în meniurile video YT opțiunile „Blochează canalul”, „Blochează videoclipul” și „Adaugă canal pe lista albă”. Ascunde automat videoclipurile de la canalele și videoclipurile blocate. Blochează și Shorts.
+// @description:bg  Добавя в менюто на YT видео опциите „Блокирай канал“, „Блокирай видео“ и „Добави канал в белия списък“. Автоматично скрива видеа от блокирани канали и отделни видеа. Също блокира Shorts.
+// @description:fa  گزینه‌های «مسدود کردن کانال»، «مسدود کردن ویدیو» و «افزودن کانال به لیست سفید» را به منوهای ویدیوی YT اضافه می‌کند. ویدیوهای کانال‌های مسدودشده و ویدیوهای مسدودشده را به‌طور خودکار مخفی می‌کند. همچنین Shorts را مسدود می‌کند.
+// @description:bn  YT ভিডিও মেনুতে "চ্যানেল ব্লক করুন", "ভিডিও ব্লক করুন" এবং "চ্যানেলকে হোয়াইটলিস্টে যুক্ত করুন" বিকল্প যোগ করে। ব্লক করা চ্যানেল এবং ভিডিও স্বয়ংক্রিয়ভাবে লুকিয়ে রাখে। Shorts-ও ব্লক করে।
+// @description:sw  Huongeza chaguo za “Zuia Kituo”, “Zuia Video”, na “Ongeza Kituo kwenye Orodha Nyeupe” kwenye menyu za video za YT. Huficha kiotomatiki video kutoka vituo na video vilivyokuwa vimezuiwa. Pia huzuia Shorts.
 // @author          polymegos
 // @namespace       https://github.com/polymegos/deTube_channel_blocker
 // @supportURL      https://github.com/polymegos/deTube_channel_blocker/issues
