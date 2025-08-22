@@ -22,7 +22,7 @@
 // @name:hi         deTube चैनल ब्लॉक करें
 // @name:th         deTube บล็อกช่อง
 // @name:vi         deTube Chặn kênh
-// @version         0.1.7
+// @version         0.1.8 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -65,7 +65,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.7";
+  const version = "0.1.8 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -465,7 +465,14 @@
     const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
       `${VIDEO_SELECTORS.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
     ).join('\n');
-    s.textContent = rules;
+    
+    const loadAnimRule = `
+      ytd-continuation-item-renderer.ytd-watch-next-secondary-results-renderer.style-scope {
+        height: 0 !important;
+        overflow: hidden !important;
+      }`;
+    
+    s.textContent = rules + (rules ? '\n' : '') + loadAnimRule;
     //log(`Applied ${blocked.size} CSS rules.`);
   }
 
