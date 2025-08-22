@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.1.8 Dev
+// @version         0.1.8
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -86,7 +86,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.8 Dev";
+  const version = "0.1.8";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -838,13 +838,9 @@
     requestAnimationFrame(attempt);
   }
 
-  function createManagementButton() {
-    const button = document.createElement('button');
-    button.id = 'detube-manage-btn';
-    button.title = 'Manage Blocked Channels';
-    button.textContent = '🚫';
-
-    button.style.cssText = `
+  // CSS classes for management button
+  const managementButtonCSS = `
+    .detube-management-button {
       background: none;
       border: none;
       color: var(--yt-spec-text-primary);
@@ -857,17 +853,25 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-    `;
+      contain: content;
+    }
+    .detube-management-button:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+  `;
 
-    button.addEventListener('mouseenter', () => {
-      button.style.backgroundColor = 'rgba(0,0,0,0.1)';
-    });
+  // Add CSS to head
+  const style = document.createElement('style');
+  style.textContent = managementButtonCSS;
+  document.head.appendChild(style);
 
-    button.addEventListener('mouseleave', () => {
-      button.style.backgroundColor = 'transparent';
-    });
-
-    button.addEventListener('click', openBlockedChannelsTab);
+  function createManagementButton() {
+    const button = document.createElement('button');
+    button.id = 'detube-manage-btn';
+    button.className = 'detube-management-button';
+    button.title = 'Manage Blocked Channels';
+    button.textContent = '🚫';
+    button.dataset.detubeAction = 'open-manager';
     return button;
   }
 
@@ -1285,6 +1289,11 @@
             text-decoration: underline;
         }
 
+        .title-link {
+            color: inherit;
+            text-decoration: none;
+        }
+
         .channel-name {
             font-weight: 600;
             flex: 1;
@@ -1377,7 +1386,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚫 deTube Blocker</h1>
+            <h1><a class="title-link" href="https://github.com/polymegos/deTube_channel_blocker" target="_blank">🚫 deTube Blocker</a></h1>
         </div>
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
@@ -2219,8 +2228,18 @@
     }
   };
 
-  // Handle clicks on the original three-dot menu button
+  // Single delegated click handler for all detube actions
   document.body.addEventListener('click', e => {
+    // Handle management button click
+    const manageBtn = e.target.closest('[data-detube-action="open-manager"]');
+    if (manageBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      openBlockedChannelsTab();
+      return;
+    }
+
+    // Handle three-dot menu button
     const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
     if (!dot) return;
     const renderer = dot.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
