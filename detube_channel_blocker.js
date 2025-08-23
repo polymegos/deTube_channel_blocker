@@ -427,8 +427,24 @@
   function removeBlockedVideos() {
     // Batch process videos to reduce DOM reflows
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
+    const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
     const fragment = document.createDocumentFragment();
     const toRemove = [];
+    
+    // Process channel entries in search results
+    for (const channelEntry of channelEntries) {
+      const channelNameEl = channelEntry.querySelector('yt-formatted-string.style-scope.ytd-channel-name');
+      if (channelNameEl) {
+        const channelName = channelNameEl.textContent.trim();
+        if (whitelistModeEnabled) {
+          if (!whitelisted.has(channelName)) {
+            toRemove.push(channelEntry);
+          }
+        } else if (blocked.has(channelName)) {
+          toRemove.push(channelEntry);
+        }
+      }
+    }
 
     for (const item of videos) {
       // Ensure we have a tag
