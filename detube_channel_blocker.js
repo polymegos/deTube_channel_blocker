@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.1.8
+// @version         0.1.9 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -78,6 +78,7 @@
 // @match           *://music.youtube.com/*
 // @grant           GM_getValue
 // @grant           GM_setValue
+// @grant           GM_addValueChangeListener
 // @run-at          document-end
 // @compatible      firefox
 // @compatible      edge
@@ -86,7 +87,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.8";
+  const version = "0.1.9 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -114,6 +115,19 @@
   let shortsDomObserver = null;
 
   const log = (...a) => console.log('%c[deTube Block Channels]', 'color: green; font-weight: bold;', ...a);
+
+  // Listen for storage changes to sync blocklist across tabs
+  GM_addValueChangeListener(STORAGE_KEY, async (name, oldValue, newValue, remote) => {
+    if (remote) {  // Only handle changes from other tabs
+      try {
+        blocked = new Set(JSON.parse(newValue || '[]'));
+        // Re-apply blocking rules
+        removeBlockedVideos();
+      } catch (e) {
+        log('Error syncing blocklist:', e);
+      }
+    }
+  });
 
   // Block shorts if user toggled
   const SHORTS_BLOCK_SELECTORS = [
@@ -299,8 +313,11 @@
   }
 
   async function saveBlocked() {
-    // Persist blocked channels
-    await GM_setValue(STORAGE_KEY, JSON.stringify([...blocked]));
+    // Persist blocked channels and force update in other tabs
+    const blocklist = JSON.stringify([...blocked]);
+    await GM_setValue(STORAGE_KEY, blocklist);
+    // Force UI update in current tab
+    removeBlockedVideos();
   }
 
   async function saveBlockedVideos() {
