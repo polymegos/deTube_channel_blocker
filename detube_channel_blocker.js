@@ -122,7 +122,7 @@
       try {
         blocked = new Set(JSON.parse(newValue || '[]'));
         // Re-apply blocking rules
-        removeBlockedVideos();
+        removeBlockedEntries();
       } catch (e) {
         log('Error syncing blocklist:', e);
       }
@@ -317,7 +317,7 @@
     const blocklist = JSON.stringify([...blocked]);
     await GM_setValue(STORAGE_KEY, blocklist);
     // Force UI update in current tab
-    removeBlockedVideos();
+    removeBlockedEntries();
   }
 
   async function saveBlockedVideos() {
@@ -424,10 +424,11 @@
     // log(`Tagged ${count}/${len} videos.`);
   }
 
-  function removeBlockedVideos() {
+  function removeBlockedEntries() {
     // Batch process videos to reduce DOM reflows
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
     const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
+    const shelfRenderers = document.querySelectorAll('div.style-scope.ytd-shelf-renderer');
     const fragment = document.createDocumentFragment();
     const toRemove = [];
     
@@ -442,6 +443,29 @@
           }
         } else if (blocked.has(channelName)) {
           toRemove.push(channelEntry);
+        }
+      }
+    }
+
+    // Process channel-specific suggested shelf renderers in search results
+    for (const shelf of shelfRenderers) {
+      const header = shelf.querySelector('div.grid-subheader.style-scope.ytd-shelf-renderer h2.style-scope.ytd-shelf-renderer span.style-scope.ytd-shelf-renderer');
+      if (header) {
+        const sectionText = header.textContent.trim();
+        if (sectionText) {
+          if (whitelistModeEnabled) {
+            const sectionWords = sectionText.split(/\s+/);
+            const hasWhitelistedWord = sectionWords.some(word => whitelisted.has(word));
+            if (!hasWhitelistedWord) {
+              toRemove.push(shelf);
+            }
+          } else {
+            const sectionWords = sectionText.split(/\s+/);
+            const hasBlockedWord = sectionWords.some(word => blocked.has(word));
+            if (hasBlockedWord) {
+              toRemove.push(shelf);
+            }
+          }
         }
       }
     }
@@ -680,7 +704,7 @@
       const title = videoInfo.title || id;
       blockedVideos[id] = title;
       saveBlockedVideos();
-      removeBlockedVideos();
+      removeBlockedEntries();
       log(`[>] Blocked video: ${title} (${id})`);
     });
 
@@ -718,7 +742,7 @@
       if (whitelistModeEnabled) {
         // Recompute view when whitelist is active
         tagAllVideos();
-        removeBlockedVideos();
+        removeBlockedEntries();
       }
       log(`[>] Whitelisted channel: ${channel}`);
     });
@@ -808,7 +832,7 @@
         const title = videoInfo.title || id;
         blockedVideos[id] = title;
         saveBlockedVideos();
-        removeBlockedVideos();
+        removeBlockedEntries();
         log(`[>] Blocked video: ${title} (${id})`);
       }, 'blockVideo');
     } else {
@@ -821,7 +845,7 @@
       saveWhitelist();
       if (whitelistModeEnabled) {
         tagAllVideos();
-        removeBlockedVideos();
+        removeBlockedEntries();
       }
       log(`[>] Whitelisted channel: ${channel}`);
     }, 'whitelist');
@@ -1982,7 +2006,7 @@
           } else if (action.action === 'unblockVideo' && action.videoId) {
             try { delete blockedVideos[action.videoId]; } catch(_) {}
             saveBlockedVideos();
-            removeBlockedVideos();
+            removeBlockedEntries();
             log(`[>] Unblocked video: ${action.videoId}`);
             newTab.window.name = '';
           } else if (action.action === 'importData' && action.data) {
@@ -2046,7 +2070,7 @@
               saveBlockedTitlePatterns();
               applyCSS();
               tagAllVideos();
-              removeBlockedVideos();
+              removeBlockedEntries();
               //log(`[>] Import merged: +${added} channels, +${vAdded} videos, +${pAdded} patterns, +${wAdded} whitelisted; dupes channels ${duplicates}, patterns ${pDupes}, whitelist ${wDupes}; invalid ${invalid}`);
             } catch (e) {
               log('Import error:', e);
@@ -2064,7 +2088,7 @@
             saveWhitelist();
             applyCSS();
             tagAllVideos();
-            removeBlockedVideos();
+            removeBlockedEntries();
             log('[>] Cleared all blocked channels and videos');
             newTab.window.name = ''; // Clear action again
           } else if (action.action === 'refreshManager') {
@@ -2085,7 +2109,7 @@
             // Recompute filtering and CSS
             applyCSS();
             tagAllVideos();
-            removeBlockedVideos();
+            removeBlockedEntries();
             log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
             // Ask manager page to refresh so the correct list and controls are shown
             try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
@@ -2103,7 +2127,7 @@
               if (!exists) {
                   blockedTitlePatterns.push(newPattern);
                   saveBlockedTitlePatterns();
-                  removeBlockedVideos();
+                  removeBlockedEntries();
                   log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
               }
               // Refresh manager to show the newly added pattern (and allow any UI animation)
@@ -2114,14 +2138,14 @@
               !(p.pattern === action.pattern && p.scope === scope)
               );
               saveBlockedTitlePatterns();
-              removeBlockedVideos();
+              removeBlockedEntries();
               log(`[>] Removed title pattern: ${action.pattern} (${scope})`);
               newTab.window.name = '';
           } else if (action.action === 'removeFromWhitelist' && action.channel) {
             whitelisted.delete(action.channel);
             saveWhitelist();
             tagAllVideos();
-            removeBlockedVideos();
+            removeBlockedEntries();
             log(`[>] Removed from whitelist: ${action.channel}`);
             newTab.window.name = '';
           }
@@ -2317,7 +2341,7 @@
     await loadWhitelist();
 
     tagAllVideos();
-    removeBlockedVideos();
+    removeBlockedEntries();
     applyCSS();
     observeMenus();
     injectManagementButton();
@@ -2325,7 +2349,7 @@
     setupShortsBlocking(shortsEnabled);
 
     const observer = new MutationObserver(() => {
-        removeBlockedVideos();
+        removeBlockedEntries();
         if (shortsEnabled) removeShortsElements();
     });
 
@@ -2334,7 +2358,7 @@
         subtree: true,
     });
 
-    window.addEventListener('yt-navigate-finish', removeBlockedVideos);
+    window.addEventListener('yt-navigate-finish', removeBlockedEntries);
     window.addEventListener('yt-navigate-finish', () => { if (shortsEnabled) removeShortsElements(); });
   })();
 
