@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.1.9 Dev
+// @version         0.1.9
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -87,7 +87,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.9 Dev";
+  const version = "0.1.9";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
