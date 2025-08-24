@@ -255,7 +255,7 @@
       } else {
           blockedTitlePatterns = [];
       }
-        log('Loaded title patterns:', blockedTitlePatterns);
+        //log('Loaded title patterns:', blockedTitlePatterns);
       } catch (e) {
         blockedTitlePatterns = [];
         log('Load-error title patterns', e);
@@ -263,8 +263,7 @@
   }
 
   function redirectIfShortsURL(url) {
-    const shortsRegex = /^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/;
-    const match = url.match(shortsRegex);
+    const match = url.match(/^https:\/\/www\.youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})(\?.*)?$/);
     if (match) {
       window.location.replace(`https://www.youtube.com/watch?v=${match[1]}${window.location.search || ''}`);
     }
@@ -358,7 +357,6 @@
         }
       }
     }
-
     // log('[!] Could not find channel name with any selector inside:', el);
     return false;
   }
@@ -429,9 +427,10 @@
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
     const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
     const shelfRenderers = document.querySelectorAll('div.style-scope.ytd-shelf-renderer');
-    const fragment = document.createDocumentFragment();
+    const whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
+    const blockedLower = new Set([...blocked].map(w => w.toLowerCase()));
     const toRemove = [];
-    
+
     // Process channel entries in search results
     for (const channelEntry of channelEntries) {
       const channelNameEl = channelEntry.querySelector('yt-formatted-string.style-scope.ytd-channel-name');
@@ -453,15 +452,14 @@
       if (header) {
         const sectionText = header.textContent.trim();
         if (sectionText) {
+          const sectionWords = sectionText.split(/\s+/).map(word => word.toLowerCase());
           if (whitelistModeEnabled) {
-            const sectionWords = sectionText.split(/\s+/);
-            const hasWhitelistedWord = sectionWords.some(word => whitelisted.has(word));
+            const hasWhitelistedWord = sectionWords.some(word => whitelistedLower.has(word));
             if (!hasWhitelistedWord) {
               toRemove.push(shelf);
             }
           } else {
-            const sectionWords = sectionText.split(/\s+/);
-            const hasBlockedWord = sectionWords.some(word => blocked.has(word));
+            const hasBlockedWord = sectionWords.some(word => blockedLower.has(word));
             if (hasBlockedWord) {
               toRemove.push(shelf);
             }
@@ -543,13 +541,13 @@
     const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
       `${VIDEO_SELECTORS.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
     ).join('\n');
-    
+
     const loadAnimRule = `
       ytd-continuation-item-renderer.ytd-watch-next-secondary-results-renderer.style-scope {
         height: 0 !important;
         overflow: hidden !important;
       }`;
-    
+
     s.textContent = rules + (rules ? '\n' : '') + loadAnimRule;
     //log(`Applied ${blocked.size} CSS rules.`);
   }
@@ -1601,7 +1599,7 @@
             finish();
           }
         }
-            
+
         function unblockVideo(videoId) {
           if (!confirm('Are you sure you want to unblock this video?')) return;
           const item = document.querySelector('.channel-item[data-video-id="' + videoId.replace(/"/g, '\\"') + '"]');
@@ -2264,9 +2262,7 @@
               video.remove();
               return;
             }
-          } catch (err) {
-            // invalid pattern, doesn't matter, skip
-          }
+          } catch (err) { /* idc */ }
         }
       }
     }
@@ -2330,7 +2326,7 @@
         const ch = renderer.dataset.detube;
         if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
       }
-    } catch(_) {}
+    } catch(_) { /* idc */ }
   }, true);
 
   (async () => {
