@@ -46,7 +46,7 @@
 // @description:zh-CN  在 YT 视频菜单中添加“屏蔽频道”“屏蔽视频”和“将频道加入白名单”选项。自动隐藏来自被屏蔽频道和被屏蔽视频的内容。同时也屏蔽 Shorts。
 // @description:zh-TW  在 YT 影片選單中新增“封鎖頻道”、“封鎖影片”與“將頻道加入白名單”選項。自動隱藏被封鎖頻道或影片的內容，並同時封鎖 Shorts。
 // @description:nl  Voegt de opties “Kanaal blokkeren”, “Video blokkeren” en “Kanaal op de witte lijst zetten” toe aan YT‑videomenu’s. Verbergt automatisch video’s van geblokkeerde kanalen en geblokkeerde video’s. Blokkeert ook Shorts.
-// @description:de  Fügt YT‑Videomenüs die Optionen „Kanal blockieren“, „Video blockieren“ und „Kanal auf Whitelist setzen“ hinzu. Blendet automatisch Videos blockierter Kanäle und einzelner Videos aus. Unterstützt auch Shorts.
+// @description:de  Fügt YT‑Videomenüs die Optionen „Kanal blockieren“, „Video blockieren“ und „Kanal auf Whitelist setzen“ hinzu. Blendet automatisch Videos blockierter Kanäle und einzelne Videos aus. Unterstützt auch das Blockieren von Shorts.
 // @description:pl  Dodaje do menu wideo YT opcje „Zablokuj kanał”, „Zablokuj wideo” i „Dodaj kanał do białej listy”. Automatycznie ukrywa filmy z zablokowanych kanałów i pojedyncze zablokowane filmy. Blokuje także Shorts.
 // @description:sv  Lägger till alternativen “Blockera kanal”, “Blockera video” och “Vitlista kanal” i YTs videomenyer. Dölj automatiskt videor från blockerade kanaler och blockerade videor. Blockerar även Shorts.
 // @description:da  Tilføjer mulighederne “Bloker kanal”, “Bloker video” og “Whitelist kanal” til YTs videomenuer. Skjuler automatisk videoer fra blokerede kanaler og blokerede videoer. Blokerer også Shorts.
@@ -660,6 +660,7 @@
       saveBlocked();
       applyCSS();
       tagAllVideos();
+      refreshUI();
       log(`[>] Blocked channel: ${channel}`);
     });
 
@@ -703,6 +704,7 @@
       blockedVideos[id] = title;
       saveBlockedVideos();
       removeBlockedEntries();
+      refreshUI();
       log(`[>] Blocked video: ${title} (${id})`);
     });
 
@@ -742,6 +744,7 @@
         tagAllVideos();
         removeBlockedEntries();
       }
+      refreshUI();
       log(`[>] Whitelisted channel: ${channel}`);
     });
 
@@ -765,8 +768,8 @@
       // Host wrapper like native items
       const host = document.createElement('ytd-menu-service-item-renderer');
       host.className = 'style-scope ytd-menu-popup-renderer detube-menu-item';
-      try { host.dataset.detubeLabel = label; } catch(_) {}
-      try { if (kind) host.dataset.detubeKind = kind; } catch(_) {}
+      try { host.dataset.detubeLabel = label; } catch(_) { /* idc */ }
+      try { if (kind) host.dataset.detubeKind = kind; } catch(_) { /* idc */ }
 
       const paper = document.createElement('tp-yt-paper-item');
       paper.className = 'style-scope ytd-menu-service-item-renderer';
@@ -780,18 +783,18 @@
       paper.style.alignItems = 'center';
       paper.style.padding = '0 16px';
       paper.style.cursor = 'pointer';
-      try { paper.setAttribute('aria-label', label); } catch(_) {}
+      try { paper.setAttribute('aria-label', label); } catch(_) { /* idc */ }
 
       const text = document.createElement('yt-formatted-string');
       text.id = 'label';
       text.className = 'style-scope ytd-menu-service-item-renderer';
       text.textContent = label;
-      try { text.removeAttribute('is-empty'); } catch(_) {}
+      try { text.removeAttribute('is-empty'); } catch(_) { /* idc */ }
       paper.appendChild(text);
 
       const handler = (ev) => {
         ev.stopPropagation();
-        try { onClick(); } catch(_) {}
+        try { onClick(); } catch(_) { /* idc */ }
         // Try to close the popup after action
         try {
           const dropdown = host.closest('tp-yt-iron-dropdown');
@@ -801,7 +804,7 @@
             // Simulate Escape to close
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
           }
-        } catch(_) {}
+        } catch(_) { /* idc */ }
       };
       paper.addEventListener('click', handler);
       host.addEventListener('click', handler);
@@ -872,10 +875,10 @@
           paper.appendChild(labelEl);
         }
         if (desired) labelEl.textContent = desired;
-        try { labelEl.removeAttribute('is-empty'); } catch(_) {}
-        try { paper.setAttribute('aria-label', desired || labelEl.textContent || ''); } catch(_) {}
+        try { labelEl.removeAttribute('is-empty'); } catch(_) { /* idc */ }
+        try { paper.setAttribute('aria-label', desired || labelEl.textContent || ''); } catch(_) { /* idc */ }
       });
-    } catch(_) {}
+    } catch(_) { /* idc */ }
   }
 
   function scheduleSearchMenuLabelHydration(list) {
@@ -1532,6 +1535,23 @@
     </div>
 
     <script>
+        // API endpoint to refresh UI
+        function handleRefreshRequest() {
+          try {
+            loadData();
+            updateUI();
+            refreshPage();
+            return { success: true, message: 'UI refreshed successfully' };
+          } catch (e) {
+            console.error('Error refreshing UI:', e);
+            return { success: false, message: 'Error refreshing UI: ' + e.message };
+          }
+        }
+
+        window.deTubeBlocklistAPI = {
+          refresh: handleRefreshRequest
+        };
+
         function refreshPage() {
           try {
             const pending = JSON.parse(window.name || 'null');
@@ -1575,12 +1595,12 @@
               window.name = JSON.stringify({ action: "unblock", channel: channelName });
               // Let UI finish animation before refreshing
               setTimeout(() => {
-                try { refreshPage(); } catch (_) {}
+                try { refreshPage(); } catch (_) { /* idc */ }
               }, 200);
             } catch (_) {
               // Even if posting fails, still attempt refresh
               setTimeout(() => {
-                try { refreshPage(); } catch (_) {}
+                try { refreshPage(); } catch (_) { /* idc */ }
               }, 200);
             }
           };
@@ -1612,7 +1632,7 @@
               }
               // Let UI finish animation before refreshing
               setTimeout(() => {
-                  try { refreshPage(); } catch (_) {}
+                  try { refreshPage(); } catch (_) { /* idc */ }
               }, 200);
           };
 
@@ -1817,13 +1837,13 @@
                                 // Ignore posting errors
                             }
                             setTimeout(() => {
-                                try { refreshPage(); } catch (_) {}
+                                try { refreshPage(); } catch (_) { /* idc */ }
                             }, 200);
                         };
                         finish();
 
                     } catch (e) {
-                        try { alert('Import failed: ' + e.message); } catch (_) {}
+                        try { alert('Import failed: ' + e.message); } catch (_) { /* idc */ }
                     } finally {
                         input.value = ''; // reset for next run
                     }
@@ -1880,7 +1900,7 @@
                 }
                 // Refresh after a short delay
                 setTimeout(() => {
-                    try { refreshPage(); } catch (_) {}
+                    try { refreshPage(); } catch (_) { /* idc */ }
                 }, 200);
             };
 
@@ -1981,6 +2001,11 @@
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const newTab = window.open(url, '_blank');
+    
+    // Store management tab reference for API access
+    if (!window.detubeManagementTab) {
+      window.detubeManagementTab = newTab;
+    }
 
     // Monitor the new tab for actions
     const checkForActions = setInterval(() => {
@@ -2002,7 +2027,7 @@
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
-            try { delete blockedVideos[action.videoId]; } catch(_) {}
+            try { delete blockedVideos[action.videoId]; } catch(_) { /* idc */ }
             saveBlockedVideos();
             removeBlockedEntries();
             log(`[>] Unblocked video: ${action.videoId}`);
@@ -2074,7 +2099,12 @@
               log('Import error:', e);
             }
             // Ask the manager page to refresh
-            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
+            try { 
+              newTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+              log('Sent refresh signal to management tab');
+            } catch(e) { 
+              log('Error refreshing management tab:', e); 
+            }
           } else if (action.action === 'clearAll') {
             blocked.clear();
             blockedVideos = {};
@@ -2092,9 +2122,9 @@
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
             const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML()], { type: 'text/html' }));
-            try { newTab.location.href = freshUrl; } catch (_) {}
+            try { newTab.location.href = freshUrl; } catch (_) { /* idc */ }
             // Clear, avoids repeated triggers of refreshManager after navigating to the new URL
-            try { newTab.window.name = ''; } catch (_) {}
+            try { newTab.window.name = ''; } catch (_) { /* idc */ }
           } else if (action.action === 'toggleShorts') {
             shortsEnabled = !!action.enabled;
             saveShortsSetting();
@@ -2280,6 +2310,20 @@
       log('Could not tag renderer.');
     }
   };
+
+  // If opened, trigger management UI refresh
+  function refreshUI() {
+    try {
+      if (window.detubeManagementTab && !window.detubeManagementTab.closed) {
+        window.detubeManagementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+        return true;
+      }
+      return false;
+    } catch (e) {
+      log('Error refreshing management UI:', e);
+      return false;
+    }
+  }
 
   // Single delegated click handler for all detube actions
   document.body.addEventListener('click', e => {
