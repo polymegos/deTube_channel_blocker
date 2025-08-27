@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.1.9
+// @version         0.2.0 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -87,7 +87,7 @@
 
 (function() {
   'use strict';
-  const version = "0.1.9";
+  const version = "0.2.0 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -422,6 +422,8 @@
     // log(`Tagged ${count}/${len} videos.`);
   }
 
+  const regexCache = new Map();
+
   function removeBlockedEntries() {
     // Batch process videos to reduce DOM reflows
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
@@ -500,9 +502,14 @@
       if (!whitelistModeEnabled && blockedTitlePatterns.length > 0) {
         for (const patternObj of blockedTitlePatterns) {
           try {
-            const re = new RegExp(patternObj.pattern, 'i');
-            const scope = patternObj.scope || 'both';
+            const cacheKey = patternObj.pattern;
+            let re = regexCache.get(cacheKey);
+            if (!re) {
+              re = new RegExp(patternObj.pattern, 'i');
+              regexCache.set(cacheKey, re);
+            }
 
+            const scope = patternObj.scope || 'both';
             let shouldRemove = false;
 
             if (scope === 'channel' && channelName && re.test(channelName)) {
@@ -1317,7 +1324,7 @@
             padding-top: 2px;
             padding-bottom: 2px;
             padding-left: 20px;
-            padding-right: 10px;
+            padding-right: 0;
             margin-bottom: 5px;
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -1511,7 +1518,7 @@
                           <path d=\"M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.58L19 8l-9 9z\"/>
                       </svg>
                       <h3>No blocked videos yet!</h3>
-                      <p>Use the three-dot menu on a video to select \"Block Video\"</p>
+                      <p>Use the three-dot menu on a video to select \"Block This Video\"</p>
                   </div>
               ` : videoItems}
               <hr style=\"margin: 10px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);\" />
@@ -2001,7 +2008,7 @@
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const newTab = window.open(url, '_blank');
-    
+
     // Store management tab reference for API access
     if (!window.detubeManagementTab) {
       window.detubeManagementTab = newTab;
@@ -2099,11 +2106,11 @@
               log('Import error:', e);
             }
             // Ask the manager page to refresh
-            try { 
-              newTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+            try {
+              newTab.window.name = JSON.stringify({ action: 'refreshManager' });
               log('Sent refresh signal to management tab');
-            } catch(e) { 
-              log('Error refreshing management tab:', e); 
+            } catch(e) {
+              log('Error refreshing management tab:', e);
             }
           } else if (action.action === 'clearAll') {
             blocked.clear();
@@ -2374,10 +2381,13 @@
   }, true);
 
   (async () => {
-    await loadBlocked();
-    await loadBlockedVideos();
-    await loadShortsSetting();
-    await loadBlockedTitlePatterns();
+    await Promise.all([
+      loadBlocked(),
+      loadBlockedVideos(),
+      loadShortsSetting(),
+      loadBlockedTitlePatterns()
+    ]);
+    // This has to await the above pre-heating stage
     await loadWhitelist();
 
     tagAllVideos();
@@ -2398,8 +2408,12 @@
         subtree: true,
     });
 
-    window.addEventListener('yt-navigate-finish', removeBlockedEntries);
-    window.addEventListener('yt-navigate-finish', () => { if (shortsEnabled) removeShortsElements(); });
+    const handleNavigation = () => {
+      removeBlockedEntries();
+      if (shortsEnabled) removeShortsElements();
+    };
+
+    window.addEventListener('yt-navigate-finish', handleNavigation);
   })();
 
 })();
