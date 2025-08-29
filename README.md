@@ -177,7 +177,8 @@ When testing, remember that your patterns will be matched against both video tit
 
 ## Privacy & Safety
 
-* The script never *ever* communicates to any servers or any third party
+* The script never *ever* sends data to any servers or any third party
+* The script only makes requests to greasyfork to check for updates, *that's it*
 * Everything is stored safely in your own browser
 
 ## License
