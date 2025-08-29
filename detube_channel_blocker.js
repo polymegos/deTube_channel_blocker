@@ -33,6 +33,8 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
+// @name:ur         deTube چینلز کو بلاک کریں
+// @name:tk         deTube Kanallary petikle
 // @version         0.2.1 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
@@ -68,6 +70,8 @@
 // @description:fa  گزینه‌های «مسدود کردن کانال»، «مسدود کردن ویدیو» و «افزودن کانال به لیست سفید» را به منوهای ویدیوی YT اضافه می‌کند. ویدیوهای کانال‌های مسدودشده و ویدیوهای مسدودشده را به‌طور خودکار مخفی می‌کند. همچنین Shorts را مسدود می‌کند.
 // @description:bn  YT ভিডিও মেনুতে "চ্যানেল ব্লক করুন", "ভিডিও ব্লক করুন" এবং "চ্যানেলকে হোয়াইটলিস্টে যুক্ত করুন" বিকল্প যোগ করে। ব্লক করা চ্যানেল এবং ভিডিও স্বয়ংক্রিয়ভাবে লুকিয়ে রাখে। Shorts-ও ব্লক করে।
 // @description:sw  Huongeza chaguo za “Zuia Kituo”, “Zuia Video”, na “Ongeza Kituo kwenye Orodha Nyeupe” kwenye menyu za video za YT. Huficha kiotomatiki video kutoka vituo na video vilivyokuwa vimezuiwa. Pia huzuia Shorts.
+// @description:tk  YT wideo menýularyna "Kanaly petikle", "Wideony petikle" we "Kanaly ak sanawa goş" opsiýalaryny goşýar. Petiklenen kanallardan we wideolardan wideo awtomatiki gizlener. Shorts hem petiklenýär.
+// @description:ur  YT ویڈیو مینو میں "چینل کو بلاک کریں"، "ویڈیو کو بلاک کریں" اور "چینل کو وائٹ لسٹ میں شامل کریں" کے اختیارات شامل کرتا ہے۔ بلاک شدہ چینلز اور ویڈیوز کو خودکار طور پر چھپاتا ہے۔ Shorts کو بھی بلاک کرتا ہے۔
 // @author          polymegos
 // @namespace       https://github.com/polymegos/deTube_channel_blocker
 // @supportURL      https://github.com/polymegos/deTube_channel_blocker/issues
