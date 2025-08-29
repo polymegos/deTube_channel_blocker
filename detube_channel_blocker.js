@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.2.0
+// @version         0.2.1 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -87,7 +87,7 @@
 
 (function() {
   'use strict';
-  const version = "0.2.0";
+  const version = "0.2.1 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -99,6 +99,9 @@
   let whitelisted = new Set();
   const WHITELIST_MODE_STORAGE_KEY = 'detube_whitelist_mode_enabled';
   let whitelistModeEnabled = false;
+
+  // Update notification
+  let updateNotificationShown = false;
 
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
@@ -961,7 +964,7 @@
     setTimeout(() => mastheadObserver.disconnect(), 30000);
   }
 
-  function generateBlockedChannelsHTML() {
+  function generateBlockedChannelsHTML(updateAvailable = false) {
     // Best way to manage is to direct away to local page
     // Generate HTML for blocked channels overview
     const blockedArray = [...blocked].sort();
@@ -1163,6 +1166,25 @@
         input {
             background: #2e2e2e;
             color: #f5f5f5;
+        }
+
+        #update-notification {
+          background: #2e2e2e;
+          color: #fff;
+          padding: 12px 16px;
+          border-radius: 6px;
+          border: 1px solid #2e2e2e;
+          margin-top: 20px;
+          font-size: 16px;
+          font-family: system-ui, sans-serif;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          cursor: pointer;
+          transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        #update-notification:hover {
+          background: rgba(30, 30, 30, 0.95);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
         .header {
@@ -1452,6 +1474,11 @@
     <div class="container">
         <div class="header">
             <h1><a class="title-link" href="https://github.com/polymegos/deTube_channel_blocker" target="_blank">🚫 deTube Blocker</a></h1>
+            ${updateAvailable ? `
+            <div id="update-notification" onclick="window.open('https://greasyfork.org/scripts/545113-detube-block-channels', '_blank')">
+                <b>⚠️ Update available!</b> Click to install the latest version
+            </div>
+            ` : ''}
         </div>
         <div class="controls">
             <button class="btn" onclick="refreshPage()">Refresh</button>
@@ -2002,9 +2029,33 @@
 </html>`;
   }
 
-  function openBlockedChannelsTab() {
-    // Blocked channels management tab
-    const html = generateBlockedChannelsHTML();
+  async function checkForUpdates() {
+    if (updateNotificationShown) return; // Only check once per session
+    
+    try {
+      const response = await fetch('https://greasyfork.org/scripts/545113-detube-block-channels/versions');
+      const text = await response.text();
+      
+      // Parse the version from the response
+      const match = text.match(/<span class="version-number">\s*<a[^>]*>v([\d.]+)<\/a>\s*<\/span>/);
+      if (match) {
+        const latestVersion = match[1];
+        const currentVersion = version.replace(' Dev', '');
+        // If the latest version "0.2.1" is greater than the current version "0.2.0", alert this
+        if (latestVersion > currentVersion) {
+          updateNotificationShown = true;
+          return true; // Update available
+        }
+      }
+    } catch (e) {
+      // Silently fail on network errors
+    }
+    return false; // No update or error
+  }
+
+  async function openBlockedChannelsTab() {
+    // Show management UI immediately, not waiting for update check
+    const html = generateBlockedChannelsHTML(false);
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const newTab = window.open(url, '_blank');
@@ -2128,7 +2179,7 @@
             newTab.window.name = ''; // Clear action again
           } else if (action.action === 'refreshManager') {
             // Rebuild the manager UI from current state and navigate the tab to it
-            const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML()], { type: 'text/html' }));
+            const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML(updateNotificationShown)], { type: 'text/html' }));
             try { newTab.location.href = freshUrl; } catch (_) { /* idc */ }
             // Clear, avoids repeated triggers of refreshManager after navigating to the new URL
             try { newTab.window.name = ''; } catch (_) { /* idc */ }
@@ -2187,6 +2238,21 @@
         }
       } catch (e) { /* idc */}
     }, 500);
+
+    // Check for updates in the background and update the UI if needed
+    checkForUpdates().then(updateAvailable => {
+      if (updateAvailable && newTab && !newTab.closed) {
+        try {
+          // Generate new HTML with update notification and update the tab
+          const updatedHtml = generateBlockedChannelsHTML(true);
+          const updatedBlob = new Blob([updatedHtml], { type: 'text/html' });
+          const updatedUrl = URL.createObjectURL(updatedBlob);
+          newTab.location.href = updatedUrl;
+        } catch (e) {
+          log('Error updating management tab with update notification:', e);
+        }
+      }
+    });
 
     // Stop checking after 5 minutes
     setTimeout(() => {
