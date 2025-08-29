@@ -33,7 +33,7 @@
 // @name:fa         deTube مسدود کردن کانال‌ها
 // @name:bn         deTube চ্যানেল ব্লক করুন
 // @name:sw         deTube Zuia vituo
-// @version         0.2.0 Dev
+// @version         0.2.0
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -87,7 +87,7 @@
 
 (function() {
   'use strict';
-  const version = "0.2.0 Dev";
+  const version = "0.2.0";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -148,26 +148,26 @@
     'a[href*="/user/"]',
     // Sidebars
     '.yt-lockup-byline a',
-    '.yt-lockup-metadata-view-model-wiz__title a',
-    'span.yt-core-attributed-string.yt-content-metadata-view-model-wiz__metadata-text',
+    '.yt-lockup-metadata-view-model__title a',
+    'span.yt-core-attributed-string.yt-content-metadata-view-model__metadata-text',
     // Homepage
-    '.yt-lockup-metadata-view-model-wiz__metadata .yt-core-attributed-string__link',
-    '.yt-content-metadata-view-model-wiz__metadata-row .yt-core-attributed-string__link',
+    '.yt-lockup-metadata-view-model__metadata .yt-core-attributed-string__link',
+    '.yt-content-metadata-view-model__metadata-row .yt-core-attributed-string__link',
     // Search
     '#text-container a.yt-simple-endpoint.style-scope.yt-formatted-string',
     // Fallbacks
     'yt-formatted-string a',
     'yt-formatted-string',
-    '.yt-lockup-metadata-view-model-wiz__title',
-    '.yt-lockup-metadata-view-model-wiz',
+    '.yt-lockup-metadata-view-model__title',
+    '.yt-lockup-metadata-view-model',
   ];
 
   const TITLE_SELECTORS = [
     'a#video-title',
-    'h3 .yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
-    '.yt-lockup-view-model-wiz__content-image span.yt-core-attributed-string',
+    'h3 .yt-lockup-metadata-view-model__title span.yt-core-attributed-string',
+    '.yt-lockup-view-model__content-image span.yt-core-attributed-string',
     'span.yt-core-attributed-string[role="text"]',
-    'a.yt-lockup-metadata-view-model-wiz__title span.yt-core-attributed-string',
+    'a.yt-lockup-metadata-view-model__title span.yt-core-attributed-string',
     'yt-formatted-string#video-title',
     'yt-formatted-string[id="video-title"]',
     'yt-formatted-string[class="style-scope ytd-video-renderer"]',
@@ -644,16 +644,16 @@
     button.setAttribute('tabindex', '0');
 
     const labelDiv = document.createElement('div');
-    labelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    labelDiv.className = 'yt-list-item-view-model__label yt-list-item-view-model__container yt-list-item-view-model__container--compact yt-list-item-view-model__container--tappable yt-list-item-view-model__container--in-popup';
 
     const textWrapper = document.createElement('div');
-    textWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    textWrapper.className = 'yt-list-item-view-model__text-wrapper';
 
     const titleWrapper = document.createElement('div');
-    titleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    titleWrapper.className = 'yt-list-item-view-model__title-wrapper';
 
     const span = document.createElement('span');
-    span.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
+    span.className = 'yt-core-attributed-string yt-list-item-view-model__title';
     span.setAttribute('role', 'text');
     span.textContent = `\u00A0🚫\u00A0\u00A0 Block ${channel}`; // This is hilarious
 
@@ -687,16 +687,16 @@
     vBtn.setAttribute('tabindex', '0');
 
     const vLabelDiv = document.createElement('div');
-    vLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    vLabelDiv.className = 'yt-list-item-view-model__label yt-list-item-view-model__container yt-list-item-view-model__container--compact yt-list-item-view-model__container--tappable yt-list-item-view-model__container--in-popup';
 
     const vTextWrapper = document.createElement('div');
-    vTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    vTextWrapper.className = 'yt-list-item-view-model__text-wrapper';
 
     const vTitleWrapper = document.createElement('div');
-    vTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    vTitleWrapper.className = 'yt-list-item-view-model__title-wrapper';
 
     const vSpan = document.createElement('span');
-    vSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
+    vSpan.className = 'yt-core-attributed-string yt-list-item-view-model__title';
     vSpan.setAttribute('role', 'text');
     vSpan.textContent = `\u00A0🚧\u00A0\u00A0 Block This Video`;
 
@@ -725,16 +725,16 @@
     wBtn.setAttribute('tabindex', '0');
 
     const wLabelDiv = document.createElement('div');
-    wLabelDiv.className = 'yt-list-item-view-model-wiz__label yt-list-item-view-model-wiz__container yt-list-item-view-model-wiz__container--compact yt-list-item-view-model-wiz__container--tappable yt-list-item-view-model-wiz__container--in-popup';
+    wLabelDiv.className = 'yt-list-item-view-model__label yt-list-item-view-model__container yt-list-item-view-model__container--compact yt-list-item-view-model__container--tappable yt-list-item-view-model__container--in-popup';
 
     const wTextWrapper = document.createElement('div');
-    wTextWrapper.className = 'yt-list-item-view-model-wiz__text-wrapper';
+    wTextWrapper.className = 'yt-list-item-view-model__text-wrapper';
 
     const wTitleWrapper = document.createElement('div');
-    wTitleWrapper.className = 'yt-list-item-view-model-wiz__title-wrapper';
+    wTitleWrapper.className = 'yt-list-item-view-model__title-wrapper';
 
     const wSpan = document.createElement('span');
-    wSpan.className = 'yt-core-attributed-string yt-list-item-view-model-wiz__title';
+    wSpan.className = 'yt-core-attributed-string yt-list-item-view-model__title';
     wSpan.setAttribute('role', 'text');
     wSpan.textContent = `\u00A0⚪\u00A0\u00A0 Whitelist ${channel}`;
 
