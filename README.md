@@ -79,6 +79,18 @@ After installing one of those, you can install the [deTube Channel Blocker](http
 3. Add the pattern
 4. Any video with a title or channel name matching that pattern will be hidden
 
+## Contributing
+
+Contributions are welcome!<br>Bug reports, feature ideas, code improvements, or documentation tweaks help make this project better.
+
+If you'd like to get involved:
+
+- **Found a bug?** Please open an issue using the [issue template](.github/ISSUE_TEMPLATE.md).  
+- **Have an idea?** Share a feature request. Even small improvements can make a difference.
+- **Want to code?** Fork the repo, make your changes, open a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) for details.
+
+We ask all contributors to follow our [Code of Conduct](CODE_OF_CONDUCT.md) to keep this project respectful and inclusive.
+
 ## Understanding Regex Patterns
 
 The deTube Channel Blocker uses JavaScript's standard `RegExp` object for pattern matching.<br>
