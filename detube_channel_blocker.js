@@ -95,7 +95,7 @@
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
-  let blocked = new Set();
+  let blocked = new Map(); // Store channel names with timestamps
   let lastRenderer = null;
 
   // Whitelist persistence
@@ -109,7 +109,7 @@
 
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
-  let blockedVideos = {};
+  let blockedVideos = new Map(); // Store video IDs with titles and timestamps
 
   // Regex persistence
   const REGEX_STORAGE_KEY = 'detube_blocked_title_patterns';
@@ -127,7 +127,15 @@
   GM_addValueChangeListener(STORAGE_KEY, async (name, oldValue, newValue, remote) => {
     if (remote) {  // Only handle changes from other tabs
       try {
-        blocked = new Set(JSON.parse(newValue || '[]'));
+        const data = JSON.parse(newValue || '{}');
+        if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+          blocked = new Map(Object.entries(data));
+        } else if (Array.isArray(data)) {
+          // Handle legacy format
+          blocked = new Map(data.map(channel => [channel, Date.now()]));
+        } else {
+          blocked = new Map();
+        }
         // Re-apply blocking rules
         removeBlockedEntries();
       } catch (e) {
@@ -191,11 +199,19 @@
 
   async function loadBlocked() {
     // Load blocked channels map
-    const raw = await GM_getValue(STORAGE_KEY, '[]');
+    const raw = await GM_getValue(STORAGE_KEY, '{}');
     try {
-      blocked = new Set(JSON.parse(raw));
+      const data = JSON.parse(raw);
+      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        blocked = new Map(Object.entries(data));
+      } else if (Array.isArray(data)) {
+        // Handle legacy format
+        blocked = new Map(data.map(channel => [channel, Date.now()]));
+      } else {
+        blocked = new Map();
+      }
       //log('Loaded blocked:', [...blocked]);
-    } catch(e){ blocked = new Set(); log('Load-error', e); }
+    } catch(e){ blocked = new Map(); log('Load-error', e); }
   }
 
   async function loadWhitelist() {
@@ -231,11 +247,28 @@
     // Load blocked videos map
     try {
       const raw = await GM_getValue(VIDEOS_STORAGE_KEY, '{}');
-      blockedVideos = JSON.parse(raw) || {};
-      if (typeof blockedVideos !== 'object' || Array.isArray(blockedVideos)) blockedVideos = {};
-      //log('Loaded blocked videos:', Object.keys(blockedVideos));
+      const data = JSON.parse(raw) || {};
+      if (typeof data === 'object' && !Array.isArray(data)) {
+        // Convert to Map with timestamp support
+        blockedVideos = new Map();
+        for (const [id, value] of Object.entries(data)) {
+          if (typeof value === 'string') {
+            // Legacy format: just title
+            blockedVideos.set(id, { title: value, timestamp: Date.now() });
+          } else if (typeof value === 'object' && value !== null) {
+            // New format: object with title and timestamp
+            blockedVideos.set(id, {
+              title: value.title || id,
+              timestamp: value.timestamp || Date.now()
+            });
+          }
+        }
+      } else {
+        blockedVideos = new Map();
+      }
+      //log('Loaded blocked videos:', [...blockedVideos.keys()]);
     } catch (e) {
-      blockedVideos = {};
+      blockedVideos = new Map();
       log('Load-error videos', e);
     }
   }
@@ -320,7 +353,7 @@
 
   async function saveBlocked() {
     // Persist blocked channels and force update in other tabs
-    const blocklist = JSON.stringify([...blocked]);
+    const blocklist = JSON.stringify(Object.fromEntries(blocked));
     await GM_setValue(STORAGE_KEY, blocklist);
     // Force UI update in current tab
     removeBlockedEntries();
@@ -328,7 +361,7 @@
 
   async function saveBlockedVideos() {
     // Persist blocked videos
-    await GM_setValue(VIDEOS_STORAGE_KEY, JSON.stringify(blockedVideos));
+    await GM_setValue(VIDEOS_STORAGE_KEY, JSON.stringify(Object.fromEntries(blockedVideos)));
   }
 
   async function saveBlockedTitlePatterns() {
@@ -437,7 +470,7 @@
     const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
     const shelfRenderers = document.querySelectorAll('div.style-scope.ytd-shelf-renderer');
     const whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
-    const blockedLower = new Set([...blocked].map(w => w.toLowerCase()));
+    const blockedLower = new Set([...blocked.keys()].map(w => w.toLowerCase()));
     const toRemove = [];
 
     // Process channel entries in search results
@@ -499,7 +532,7 @@
       // Video-based removal
       const info = getVideoInfo(item);
       const id = info.id;
-      if (!whitelistModeEnabled && id && blockedVideos[id]) {
+      if (!whitelistModeEnabled && id && blockedVideos.has(id)) {
         toRemove.push(item);
         continue;
       }
@@ -552,7 +585,7 @@
     if (!s) { s = document.createElement('style'); s.id = 'detube_style'; document.head.append(s); }
     // In whitelist mode we rely on DOM removal for performance correctness.
     // Only apply CSS rules for explicit blocked channels when not in whitelist mode.
-    const rules = whitelistModeEnabled ? '' : [...blocked].map(n =>
+    const rules = whitelistModeEnabled ? '' : [...blocked.keys()].map(n =>
       `${VIDEO_SELECTORS.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
     ).join('\n');
 
@@ -670,7 +703,7 @@
     button.appendChild(labelDiv);
 
     button.addEventListener('click', () => {
-      blocked.add(channel);
+      blocked.set(channel, Date.now());
       saveBlocked();
       applyCSS();
       tagAllVideos();
@@ -715,7 +748,7 @@
     vBtn.addEventListener('click', () => {
       const id = videoInfo.id;
       const title = videoInfo.title || id;
-      blockedVideos[id] = title;
+      blockedVideos.set(id, { title, timestamp: Date.now() });
       saveBlockedVideos();
       removeBlockedEntries();
       refreshUI();
@@ -832,7 +865,7 @@
 
     // Block Channel
     const blockChannelItem = createPaperItem(`\u00A0🚫\u00A0\u00A0 Block ${channel}`, () => {
-      blocked.add(channel);
+      blocked.set(channel, Date.now());
       saveBlocked();
       applyCSS();
       tagAllVideos();
@@ -845,7 +878,7 @@
       blockVideoItem = createPaperItem('\u00A0🚧\u00A0\u00A0 Block This Video', () => {
         const id = videoInfo.id;
         const title = videoInfo.title || id;
-        blockedVideos[id] = title;
+        blockedVideos.set(id, { title, timestamp: Date.now() });
         saveBlockedVideos();
         removeBlockedEntries();
         log(`[>] Blocked video: ${title} (${id})`);
@@ -971,18 +1004,39 @@
   function generateBlockedChannelsHTML(updateAvailable = false) {
     // Best way to manage is to direct away to local page
     // Generate HTML for blocked channels overview
-    const blockedArray = [...blocked].sort();
-    const videosArray = Object.entries(blockedVideos)
-      .map(([id, title]) => ({ id, title: String(title || id) }))
-      .sort((a, b) => a.title.localeCompare(b.title));
-    const channelItems = blockedArray.map(channel => `
-      <div class="channel-item" data-channel="${channel.replace(/"/g, '&quot;')}">
-        <span class="channel-name">${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+    let sortMethod = localStorage.getItem('detube_sort_method') || 'alphabetical';
+    
+    // Convert Maps to arrays and sort
+    let blockedArray = [...blocked.entries()];
+    let videosArray = [...blockedVideos.entries()];
+    
+    if (sortMethod === 'timestamp') {
+      blockedArray.sort((a, b) => b[1] - a[1]); // Sort by timestamp (newest first)
+      videosArray.sort((a, b) => b[1].timestamp - a[1].timestamp); // Sort by timestamp (newest first)
+    } else {
+      blockedArray.sort((a, b) => a[0].localeCompare(b[0])); // Sort alphabetically
+      videosArray.sort((a, b) => a[1].title.localeCompare(b[1].title)); // Sort alphabetically
+    }
+    
+    const channelItems = blockedArray.map(([channel, timestamp]) => {
+      const date = new Date(timestamp).toLocaleString();
+      return `
+      <div class="channel-item" data-channel="${channel.replace(/"/g, '&quot;')}"
+          style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <div style="flex: 1; display: flex; gap: 16px;">
+          <span class="channel-name" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+          </span>
+          <div class="timestamp" style="font-size: 0.8em; opacity: 0.7; white-space: nowrap;">
+            Added: ${date}
+          </div>
+        </div>
         <button class="unblock-btn" onclick="unblockChannel('${channel.replace(/'/g, "\\'")}')">
           <span>✕</span>
         </button>
       </div>
-    `).join('');
+    `}).join('');
+    
     const whitelistArray = [...whitelisted].sort();
     const whitelistItems = whitelistArray.map(channel => `
       <div class="channel-item" data-wchannel="${channel.replace(/"/g, '&quot;')}">
@@ -992,14 +1046,21 @@
         </button>
       </div>
     `).join('');
-    const videoItems = videosArray.map(v => `
-      <div class="channel-item" data-video-id="${v.id.replace(/"/g, '&quot;')}">
-        <span class="channel-name">${v.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
-        <button class="unblock-btn" onclick="unblockVideo('${v.id.replace(/'/g, "\\'")}')">
+    
+    const videoItems = videosArray.map(([id, videoData]) => {
+      const date = new Date(videoData.timestamp).toLocaleString();
+      return `
+      <div class="channel-item" data-video-id="${id.replace(/"/g, '&quot;')}">
+        <div style="flex: 1;">
+          <span class="channel-name">${videoData.title.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>
+          <div class="timestamp" style="font-size: 0.8em; opacity: 0.7; margin-top: 2px;">Added: ${date}</div>
+        </div>
+        <button class="unblock-btn" onclick="unblockVideo('${id.replace(/'/g, "\\'")}')">
           <span>✕</span>
         </button>
       </div>
-    `).join('');
+    `}).join('');
+    
     const patternsArray = blockedTitlePatterns.slice();
     const patternItems = patternsArray.map(patternObj => {
     const displayText = (patternObj.scope !== 'both' ? `[${patternObj.scope}]\u00A0\u00A0` : '[both]\u00A0\u00A0') + patternObj.pattern;
@@ -1039,6 +1100,12 @@
             }
 
             #pattern-scope {
+                background: #f5f5f5;
+                border: 1px solid #f5f5f5;
+                color: #2e2e2e;
+            }
+
+            #sort-select {
                 background: #f5f5f5;
                 border: 1px solid #f5f5f5;
                 color: #2e2e2e;
@@ -1093,6 +1160,12 @@
         @media (prefers-color-scheme: dark) {
             body {
                 background: linear-gradient(135deg, #222222 0%, #333333 100%);
+                color: #f5f5f5;
+            }
+
+            #sort-select {
+                background: #2e2e2e;
+                border: 1px solid #2e2e2e;
                 color: #f5f5f5;
             }
 
@@ -1165,6 +1238,13 @@
             border-radius: 5px;
             backdrop-filter: blur(10px);
             overflow: hidden;
+        }
+
+        #sort-select {
+            padding: 7px 8px;
+            border-radius: 5px;
+            width: 120px;
+            margin-right: 12px;
         }
 
         input {
@@ -1257,7 +1337,7 @@
             gap: 10px;
             font-weight: 600;
             font-size: 13px;
-            padding: 10px 8px;
+            padding: 3px 8px;
             border-radius: 25px;
             background: rgba(0,0,0,0.06);
         }
@@ -1387,7 +1467,6 @@
 
         .channel-name {
             font-weight: 600;
-            flex: 1;
             padding-right: 15px;
         }
 
@@ -1502,6 +1581,13 @@
                 <span class="slider"></span>
               </label>
               <span>Whitelist Mode</span>
+            </div>
+            <div class="toggle" title="Sort entries by" ${whitelistModeEnabled ? 'style="display:none;"' : ''}>
+              <label for="sort-select" style="margin-right: 8px;">Sort by:</label>
+              <select id="sort-select" onchange="changeSort(this.value)">
+                <option value="alphabetical" ${sortMethod === 'alphabetical' ? 'selected' : ''}>Alphabetical</option>
+                <option value="timestamp" ${sortMethod === 'timestamp' ? 'selected' : ''}>Timestamp</option>
+              </select>
             </div>
             <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
             <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
@@ -1727,11 +1813,11 @@
         function exportData() {
           try {
             const payload = {
-              version: 'detube ${version}',
-              blockedNames: ${JSON.stringify(blockedArray)},
-              blockedVideos: ${JSON.stringify(blockedVideos)},
-              blockedTitlePatterns: ${JSON.stringify(patternsArray)},
-              whitelisted: ${JSON.stringify(whitelistArray)}
+              version: 'detube ' + version,
+              blockedNames: Object.fromEntries(blocked),
+              blockedVideos: Object.fromEntries(blockedVideos),
+              blockedTitlePatterns: patternsArray,
+              whitelisted: whitelistArray
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -1778,8 +1864,18 @@
                         } else if (data && typeof data === 'object') {
                             if (data.blockedNames || data.blockedVideos || data.blockedTitlePatterns || data.whitelisted) {
                                 // Standard format
-                                if (Array.isArray(data.blockedNames)) names = data.blockedNames;
-                                if (data.blockedVideos && typeof data.blockedVideos === 'object') videos = data.blockedVideos;
+                                if (Array.isArray(data.blockedNames)) {
+                                    // Handle legacy array format
+                                    names = data.blockedNames;
+                                } else if (data.blockedNames && typeof data.blockedNames === 'object' && data.blockedNames !== null) {
+                                    // Handle new object format with timestamps
+                                    names = data.blockedNames;
+                                }
+
+                                if (data.blockedVideos && typeof data.blockedVideos === 'object') {
+                                    videos = data.blockedVideos;
+                                }
+
                                 if (Array.isArray(data.blockedTitlePatterns)) {
                                     patterns = data.blockedTitlePatterns.map(p => {
                                         if (typeof p === 'string') {
@@ -1790,10 +1886,10 @@
                                         return null;
                                     }).filter(Boolean);
                                 }
+
                                 if (Array.isArray(data.whitelisted)) {
                                     whitelist = data.whitelisted.filter(x => typeof x === 'string');
                                 }
-
                             } else if (data.filterData && typeof data.filterData === 'object') {
                                 // Old plugin format
                                 const fd = data.filterData;
@@ -1856,7 +1952,7 @@
                             }
                         }
 
-                        if (!Array.isArray(names)) {
+                        if (typeof names !== 'object' || names === null) {
                             throw new Error('Invalid format for channels');
                         }
 
@@ -2000,6 +2096,11 @@
           }
       }
 
+      function changeSort(method) {
+          localStorage.setItem('detube_sort_method', method);
+          refreshPage();
+      }
+
       function removeFromWhitelist(channelName) {
           if (!confirm('Remove "' + channelName + '" from whitelist?')) return;
           const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
@@ -2089,27 +2190,67 @@
             log(`[>] Unblocked channel: ${action.channel}`);
             newTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
-            try { delete blockedVideos[action.videoId]; } catch(_) { /* idc */ }
+            blockedVideos.delete(action.videoId);
             saveBlockedVideos();
             removeBlockedEntries();
             log(`[>] Unblocked video: ${action.videoId}`);
             newTab.window.name = '';
           } else if (action.action === 'importData' && action.data) {
             try {
-              const arr = Array.isArray(action.data.blockedNames) ? action.data.blockedNames : [];
               let added = 0, duplicates = 0, invalid = 0;
-              for (const n of arr) {
-                if (!n || typeof n !== 'string') { invalid++; continue; }
-                if (blocked.has(n)) { duplicates++; continue; }
-                blocked.add(n);
-                added++;
+              // Handle blockedNames (could be array for legacy, array of arrays for current, or object for new format)
+              if (action.data.blockedNames) {
+                if (Array.isArray(action.data.blockedNames)) {
+                  // Could be legacy format (array of strings) or current format (array of [name, timestamp] arrays)
+                  for (const entry of action.data.blockedNames) {
+                    let name, timestamp;
+                    if (Array.isArray(entry)) {
+                      // Current format: [name, timestamp]
+                      name = entry[0];
+                      timestamp = entry[1];
+                    } else if (typeof entry === 'string') {
+                      // Legacy format: just name
+                      name = entry;
+                      timestamp = Date.now();
+                    } else {
+                      continue; // Invalid entry
+                    }
+                    
+                    if (!name || typeof name !== 'string') { invalid++; continue; }
+                    if (blocked.has(name)) { duplicates++; continue; }
+                    blocked.set(name, timestamp);
+                    added++;
+                  }
+                } else if (typeof action.data.blockedNames === 'object' && action.data.blockedNames !== null) {
+                  // New object format with timestamps
+                  for (const [name, timestamp] of Object.entries(action.data.blockedNames)) {
+                    if (!name || typeof name !== 'string') { invalid++; continue; }
+                    if (blocked.has(name)) { duplicates++; continue; }
+                    blocked.set(name, timestamp);
+                    added++;
+                  }
+                }
               }
               // Merge videos
-              const vids = action.data.blockedVideos && typeof action.data.blockedVideos === 'object' ? action.data.blockedVideos : {};
               let vAdded = 0;
-              for (const [vid, title] of Object.entries(vids)) {
-                if (!vid || typeof vid !== 'string') continue;
-                if (!blockedVideos[vid]) { blockedVideos[vid] = String(title || vid); vAdded++; }
+              if (action.data.blockedVideos && typeof action.data.blockedVideos === 'object' && action.data.blockedVideos !== null) {
+                for (const [vid, value] of Object.entries(action.data.blockedVideos)) {
+                  if (!vid || typeof vid !== 'string') continue;
+                  if (!blockedVideos.has(vid)) { 
+                    // Handle both legacy format (string) and new format (object)
+                    if (typeof value === 'string') {
+                      // Legacy format: just title
+                      blockedVideos.set(vid, { title: value, timestamp: Date.now() });
+                    } else if (typeof value === 'object' && value !== null) {
+                      // New format: object with title and timestamp
+                      blockedVideos.set(vid, { 
+                        title: value.title || vid, 
+                        timestamp: value.timestamp || Date.now() 
+                      });
+                    }
+                    vAdded++; 
+                  }
+                }
               }
               // Merge whitelisted channels
               const wlist = Array.isArray(action.data.whitelisted) ? action.data.whitelisted.filter(x => typeof x === 'string') : [];
@@ -2169,7 +2310,7 @@
             }
           } else if (action.action === 'clearAll') {
             blocked.clear();
-            blockedVideos = {};
+            blockedVideos.clear();
             blockedTitlePatterns = [];
             whitelisted.clear();
             saveBlocked();
@@ -2334,7 +2475,7 @@
       // Video-based removal
       const info = getVideoInfo(video);
       const id = info.id;
-      if (!whitelistModeEnabled && id && blockedVideos[id]) { video.remove(); return; }
+      if (!whitelistModeEnabled && id && blockedVideos.has(id)) { video.remove(); return; }
       // Title/channel-regex based removal
       const title = (video.dataset.detubeVidTitle || info.title || '').trim();
       const channelName = (video.dataset.detube || '').trim();
