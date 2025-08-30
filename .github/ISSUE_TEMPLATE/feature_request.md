@@ -1,3 +1,11 @@
+---
+name: Feature request
+about: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: enhancement
+assignees: ""
+---
+
 ## Feature request / Enhancement
 
 **Please describe the feature concisely and clearly.**

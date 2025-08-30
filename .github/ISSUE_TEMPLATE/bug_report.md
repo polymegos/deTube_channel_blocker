@@ -1,3 +1,11 @@
+---
+name: Bug Report
+about: Report a problem in this project
+title: "[Bug] "
+labels: bug
+assignees: ''
+---
+
 ## Bug report
 
 **Required -- please fill these in**
