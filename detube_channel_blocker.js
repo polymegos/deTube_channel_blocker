@@ -2410,11 +2410,11 @@
       }
     });
 
-    // Stop checking after 5 minutes
+    // Stop checking after 2 hours
     setTimeout(() => {
       clearInterval(checkForActions);
       URL.revokeObjectURL(url);
-    }, 300000);
+    }, 7200000);
   }
 
   function observeNewVideos() {
