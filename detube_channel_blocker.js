@@ -152,6 +152,11 @@
     'div#dismissible.style-scope.ytd-rich-shelf-renderer'
   ];
 
+  // Empty content remnants
+  const EMPTY_CONTENT_SELECTORS = [
+    'div#content.style-scope.ytd-rich-item-renderer:empty'
+  ].join(',');
+
   // Tag matching for videos and channels
   const TAG_VIDEO_SELECTORS = [
     // Generic
@@ -469,6 +474,7 @@
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
     const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
     const shelfRenderers = document.querySelectorAll('div.style-scope.ytd-shelf-renderer');
+    const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
     const whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
     const blockedLower = new Set([...blocked.keys()].map(w => w.toLowerCase()));
     const toRemove = [];
@@ -508,6 +514,11 @@
           }
         }
       }
+    }
+
+    for (const div of emptyContentDivs) {
+      // Process empty content divs
+      toRemove.push(div);
     }
 
     for (const item of videos) {
@@ -2419,6 +2430,7 @@
       // Schedule processing with debounce
       processingTimeout = setTimeout(() => {
         let newVideosFound = false;
+        let newEmptyDivsFound = false;
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (!(node instanceof HTMLElement)) continue;
@@ -2428,8 +2440,13 @@
               newVideosFound = true;
               break;
             }
+            // Check for empty content divs
+            if (node.matches(EMPTY_CONTENT_SELECTORS) ||
+                (node.querySelector && node.querySelector(EMPTY_CONTENT_SELECTORS))) {
+              newEmptyDivsFound = true;
+            }
           }
-          if (newVideosFound) break;
+          if (newVideosFound && newEmptyDivsFound) break;
         }
 
         if (newVideosFound) {
@@ -2449,6 +2466,26 @@
                   if (tagVideo(video)) {
                     filterVideo(video);
                   }
+                }
+              }
+            }
+          }
+        }
+        
+        if (newEmptyDivsFound) {
+          // Handle empty content divs
+          for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+              if (!(node instanceof HTMLElement)) continue;
+              // Check if node itself matches empty content selector
+              if (node.matches(EMPTY_CONTENT_SELECTORS)) {
+                node.remove();
+              } 
+              // Check if node contains empty content divs
+              else if (node.querySelector) {
+                const emptyDivs = node.querySelectorAll(EMPTY_CONTENT_SELECTORS);
+                for (const div of emptyDivs) {
+                  div.remove();
                 }
               }
             }
@@ -2612,6 +2649,10 @@
     const observer = new MutationObserver(() => {
         removeBlockedEntries();
         if (shortsEnabled) removeShortsElements();
+        const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
+        for (const div of emptyContentDivs) {
+            div.remove();
+        }
     });
 
     observer.observe(document.body, {
@@ -2622,6 +2663,10 @@
     const handleNavigation = () => {
       removeBlockedEntries();
       if (shortsEnabled) removeShortsElements();
+      const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
+      for (const div of emptyContentDivs) {
+        div.remove();
+      }
     };
 
     window.addEventListener('yt-navigate-finish', handleNavigation);
