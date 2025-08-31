@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.1 Dev
+// @version         0.2.1
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const version = "0.2.1 Dev";
+  const VERSION = "0.2.1";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -317,7 +317,7 @@
   function removeShortsElements() {
     if (!shortsEnabled) return;
     SHORTS_BLOCK_SELECTORS.forEach(sel => {
-      document.querySelectorAll(sel).forEach(el => el.remove());
+      document.querySelectorAll(sel).forEach(el => el.hidden = true);
     });
   }
 
@@ -477,7 +477,7 @@
     const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
     const whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
     const blockedLower = new Set([...blocked.keys()].map(w => w.toLowerCase()));
-    const toRemove = [];
+    const toHide = [];
 
     // Process channel entries in search results
     for (const channelEntry of channelEntries) {
@@ -486,10 +486,10 @@
         const channelName = channelNameEl.textContent.trim();
         if (whitelistModeEnabled) {
           if (!whitelisted.has(channelName)) {
-            toRemove.push(channelEntry);
+            toHide.push(channelEntry);
           }
         } else if (blocked.has(channelName)) {
-          toRemove.push(channelEntry);
+          toHide.push(channelEntry);
         }
       }
     }
@@ -504,12 +504,12 @@
           if (whitelistModeEnabled) {
             const hasWhitelistedWord = sectionWords.some(word => whitelistedLower.has(word));
             if (!hasWhitelistedWord) {
-              toRemove.push(shelf);
+              toHide.push(shelf);
             }
           } else {
             const hasBlockedWord = sectionWords.some(word => blockedLower.has(word));
             if (hasBlockedWord) {
-              toRemove.push(shelf);
+              toHide.push(shelf);
             }
           }
         }
@@ -518,7 +518,7 @@
 
     for (const div of emptyContentDivs) {
       // Process empty content divs
-      toRemove.push(div);
+      toHide.push(div);
     }
 
     for (const item of videos) {
@@ -531,12 +531,12 @@
       if (whitelistModeEnabled) {
         // In whitelist mode: remove anything NOT in the whitelist
         if (!name || !whitelisted.has(name)) {
-          toRemove.push(item);
+          toHide.push(item);
           continue;
         }
       } else {
         if (name && blocked.has(name)) {
-          toRemove.push(item);
+          toHide.push(item);
           continue;
         }
       }
@@ -544,7 +544,7 @@
       const info = getVideoInfo(item);
       const id = info.id;
       if (!whitelistModeEnabled && id && blockedVideos.has(id)) {
-        toRemove.push(item);
+        toHide.push(item);
         continue;
       }
       // Title/channel-regex based removal
@@ -575,7 +575,7 @@
             }
 
             if (shouldRemove) {
-              toRemove.push(item);
+              toHide.push(item);
               break; // Exit pattern loop
             }
           } catch (err) {
@@ -585,28 +585,31 @@
       }
     }
 
-    // Remove all marked elements in batch
-    for (const item of toRemove) {
-      item.remove();
+    // Hide all marked elements using hidden attribute
+    for (const item of toHide) {
+      item.hidden = true;
     }
   }
 
   function applyCSS() {
     let s = document.getElementById('detube_style');
-    if (!s) { s = document.createElement('style'); s.id = 'detube_style'; document.head.append(s); }
-    // In whitelist mode we rely on DOM removal for performance correctness.
-    // Only apply CSS rules for explicit blocked channels when not in whitelist mode.
+    if (!s) {
+      // In whitelist mode we rely on DOM removal for performance + correctness
+      s = document.createElement('style'); s.id = 'detube_style'; document.head.append(s); 
+    }
+    
+    // Only apply CSS rules for explicit blocked channels when not in whitelist mode
+    // Hidden attribute instead of CSS display rules, prevents blank placeholders
     const rules = whitelistModeEnabled ? '' : [...blocked.keys()].map(n =>
-      `${VIDEO_SELECTORS.map(t => `${t}[data-detube="${CSS.escape(n)}"]`).join(', ')} { display: none !important; }`
-    ).join('\n');
-
-    const loadAnimRule = `
-      ytd-continuation-item-renderer.ytd-watch-next-secondary-results-renderer.style-scope {
-        height: 0 !important;
-        overflow: hidden !important;
-      }`;
-
-    s.textContent = rules + (rules ? '\n' : '') + loadAnimRule;
+      `${VIDEO_SELECTORS.map(t => `${t}[data-detube=\"${CSS.escape(n)}\"]`).join(', ')} { display: none !important; }`).join('\\n');
+    
+    const loadAnimRule = `ytd-continuation-item-renderer.ytd-watch-next-secondary-results-renderer.style-scope {
+      height: 0 !important;
+      overflow: hidden !important;
+    }`;
+    
+    const hiddenRule = `\n      [hidden] {\n        display: none !important;\n      }`;
+    s.textContent = rules + (rules ? '\\n' : '') + loadAnimRule + '\\n' + hiddenRule;
     //log(`Applied ${blocked.size} CSS rules.`);
   }
 
@@ -1030,7 +1033,7 @@
     }
     
     const channelItems = blockedArray.map(([channel, timestamp]) => {
-      const date = new Date(timestamp).toLocaleString();
+      const date = new Date(timestamp).toLocaleString(); // "MM/DD/YYYY, HH:MM AM/PM" or similar
       return `
       <div class="channel-item" data-channel="${channel.replace(/"/g, '&quot;')}"
           style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
@@ -1088,7 +1091,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>deTube Blocker</title>
+    <title>deTube Blocker ${VERSION}</title>
     <style>
         * {
             margin: 0;
@@ -1600,8 +1603,6 @@
                 <option value="timestamp" ${sortMethod === 'timestamp' ? 'selected' : ''}>Timestamp</option>
               </select>
             </div>
-            <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
-            <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
             ${whitelistModeEnabled ? '' : `
             <div class="pattern-row" style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
@@ -1613,6 +1614,8 @@
               </select>
               <button class="btn" onclick="addPattern()">Add</button>
             </div>`}
+            <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
+            <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
         </div>
 
         <div class="channels-list">
@@ -1663,7 +1666,7 @@
             `}
         </div>
         <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
-          <span>deTube Blocker ${version}</span>
+          <span>deTube Blocker ${VERSION}</span>
           <span><a class="footer-link" href="https://github.com/polymegos/deTube_channel_blocker" target="_blank">Help & Feedback</a></span>
           <span><a class="footer-link" href="https://greasyfork.org/scripts/545112-detube-disable-ai-audio" target="_blank">Disable AI Translations</a></span>
         </div>
@@ -2156,7 +2159,7 @@
       const match = text.match(/<span class="version-number">\s*<a[^>]*>v([\d.]+)<\/a>\s*<\/span>/);
       if (match) {
         const latestVersion = match[1];
-        const currentVersion = version.replace(' Dev', '');
+        const currentVersion = VERSION.replace(' Dev', '');
         // If the latest version "0.2.1" is greater than the current version "0.2.0", alert this
         if (latestVersion > currentVersion) {
           updateNotificationShown = true;
@@ -2479,13 +2482,13 @@
               if (!(node instanceof HTMLElement)) continue;
               // Check if node itself matches empty content selector
               if (node.matches(EMPTY_CONTENT_SELECTORS)) {
-                node.remove();
+                node.hidden = true;
               } 
               // Check if node contains empty content divs
               else if (node.querySelector) {
                 const emptyDivs = node.querySelectorAll(EMPTY_CONTENT_SELECTORS);
                 for (const div of emptyDivs) {
-                  div.remove();
+                  div.hidden = true;
                 }
               }
             }
@@ -2505,14 +2508,14 @@
       const name = video.dataset.detube && video.dataset.detube.trim();
       if (whitelistModeEnabled) {
         // In whitelist mode: remove anything NOT in the whitelist
-        if (!name || !whitelisted.has(name)) { video.remove(); return; }
+        if (!name || !whitelisted.has(name)) { video.hidden = true; return; }
       } else {
-        if (name && blocked.has(name)) { video.remove(); return; }
+        if (name && blocked.has(name)) { video.hidden = true; return; }
       }
       // Video-based removal
       const info = getVideoInfo(video);
       const id = info.id;
-      if (!whitelistModeEnabled && id && blockedVideos.has(id)) { video.remove(); return; }
+      if (!whitelistModeEnabled && id && blockedVideos.has(id)) { video.hidden = true; return; }
       // Title/channel-regex based removal
       const title = (video.dataset.detubeVidTitle || info.title || '').trim();
       const channelName = (video.dataset.detube || '').trim();
@@ -2544,7 +2547,7 @@
             }
 
             if (shouldRemove) {
-              video.remove();
+              video.hidden = true;
               return;
             }
           } catch (err) { /* idc */ }
@@ -2651,7 +2654,7 @@
         if (shortsEnabled) removeShortsElements();
         const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
         for (const div of emptyContentDivs) {
-            div.remove();
+            div.hidden = true;
         }
     });
 
@@ -2665,7 +2668,7 @@
       if (shortsEnabled) removeShortsElements();
       const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
       for (const div of emptyContentDivs) {
-        div.remove();
+        div.hidden = true;
       }
     };
 
