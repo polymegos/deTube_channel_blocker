@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.2 Dev
+// @version         0.2.2 Dev 2
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const VERSION = "0.2.2 Dev";
+  const VERSION = "0.2.2 Dev 2";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -129,7 +129,217 @@
   let shortsUrlObserver = null;
   let shortsDomObserver = null;
 
+  // Manager message listener
+  let managerMessageListenerAttached = false;
+
   const log = (...a) => console.log('%c[deTube Block Channels]', 'color: green; font-weight: bold;', ...a);
+
+  function processManagerAction(action) {
+    // Process manager actions from the management tab
+    // Avoids freezing if management UI tab gets minimized for some duration (Chromium)
+    if (action.action === 'unblock' && action.channel) {
+      blocked.delete(action.channel);
+      blockedDirty = true;
+      saveBlocked();
+      applyCSS();
+      tagAllVideos();
+      log(`[>] Unblocked channel: ${action.channel}`);
+    } else if (action.action === 'unblockVideo' && action.videoId) {
+      blockedVideos.delete(action.videoId);
+      saveBlockedVideos();
+      removeBlockedEntries();
+      log(`[>] Unblocked video: ${action.videoId}`);
+    } else if (action.action === 'importData' && action.data) {
+      try {
+        let added = 0, duplicates = 0, invalid = 0;
+        if (action.data.blockedNames) {
+          blockedDirty = true;
+          if (Array.isArray(action.data.blockedNames)) {
+            for (const entry of action.data.blockedNames) {
+              let name, timestamp;
+              if (Array.isArray(entry)) {
+                name = entry[0];
+                timestamp = entry[1];
+              } else if (typeof entry === 'string') {
+                name = entry;
+                timestamp = Date.now();
+              } else {
+                continue;
+              }
+              
+              if (!name || typeof name !== 'string') { invalid++; continue; }
+              if (blocked.has(name)) { duplicates++; continue; }
+              blocked.set(name, timestamp);
+              added++;
+            }
+          } else if (typeof action.data.blockedNames === 'object' && action.data.blockedNames !== null) {
+            for (const [name, timestamp] of Object.entries(action.data.blockedNames)) {
+              if (!name || typeof name !== 'string') { invalid++; continue; }
+              if (blocked.has(name)) { duplicates++; continue; }
+              blocked.set(name, timestamp);
+              added++;
+            }
+          }
+        }
+        let vAdded = 0;
+        if (action.data.blockedVideos && typeof action.data.blockedVideos === 'object' && action.data.blockedVideos !== null) {
+          for (const [vid, value] of Object.entries(action.data.blockedVideos)) {
+            if (!vid || typeof vid !== 'string') continue;
+            if (!blockedVideos.has(vid)) { 
+              if (typeof value === 'string') {
+                blockedVideos.set(vid, { title: value, timestamp: Date.now() });
+              } else if (typeof value === 'object' && value !== null) {
+                blockedVideos.set(vid, { 
+                  title: value.title || vid, 
+                  timestamp: value.timestamp || Date.now() 
+                });
+              }
+              vAdded++; 
+            }
+          }
+        }
+        const wlist = Array.isArray(action.data.whitelisted) ? action.data.whitelisted.filter(x => typeof x === 'string') : [];
+        if (wlist.length > 0) whitelistedDirty = true;
+        let wAdded = 0, wDupes = 0;
+        for (const w of wlist) {
+          if (whitelisted.has(w)) { wDupes++; continue; }
+          whitelisted.add(w); wAdded++;
+        }
+        let pats = [];
+        if (Array.isArray(action.data.blockedTitlePatterns)) {
+            pats = action.data.blockedTitlePatterns.map(p => {
+            if (typeof p === 'string') {
+                return { pattern: p, scope: 'both' };
+            } else if (typeof p === 'object' && p.pattern) {
+                return {
+                pattern: p.pattern,
+                scope: p.scope || 'both'
+                };
+            }
+            return null;
+            }).filter(p => p !== null);
+        }
+
+        let pAdded = 0, pDupes = 0;
+        for (const patObj of pats) {
+            const exists = blockedTitlePatterns.some(p =>
+            p.pattern === patObj.pattern && p.scope === patObj.scope
+            );
+
+            if (!exists) {
+            blockedTitlePatterns.push(patObj);
+            pAdded++;
+            } else {
+            pDupes++;
+            }
+        }
+        saveBlocked();
+        saveBlockedVideos();
+        saveWhitelist();
+        saveBlockedTitlePatterns();
+        applyCSS();
+        tagAllVideos();
+        removeBlockedEntries();
+      } catch (e) {
+        log('Import error:', e);
+      }
+      try {
+        if (managementTab && !managementTab.closed) {
+          managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+        }
+        log('Sent refresh signal to management tab');
+      } catch(e) {
+        log('Error refreshing management tab:', e);
+      }
+    } else if (action.action === 'clearAll') {
+      blocked.clear();
+      blockedDirty = true;
+      blockedVideos.clear();
+      blockedTitlePatterns = [];
+      whitelisted.clear();
+      whitelistedDirty = true;
+      saveBlocked();
+      saveBlockedVideos();
+      saveBlockedTitlePatterns();
+      saveWhitelist();
+      applyCSS();
+      tagAllVideos();
+      removeBlockedEntries();
+      log('[>] Cleared all blocked channels and videos');
+    } else if (action.action === 'refreshManager') {
+      const freshHtml = generateBlockedChannelsHTML(updateNotificationShown);
+      const freshBlob = new Blob([freshHtml], { type: 'text/html' });
+      const freshUrl = URL.createObjectURL(freshBlob);
+      if (managementTabUrl) {
+          URL.revokeObjectURL(managementTabUrl);
+      }
+      managementTabUrl = freshUrl;
+      try { managementTab.location.href = managementTabUrl; } catch (_) { /* idc */ }
+      try { managementTab.window.name = ''; } catch (_) { /* idc */ }
+    } else if (action.action === 'toggleShorts') {
+      shortsEnabled = !!action.enabled;
+      saveShortsSetting();
+      setupShortsBlocking(shortsEnabled);
+      log(`[>] Shorts blocking: ${shortsEnabled ? 'ENABLED' : 'DISABLED'}`);
+    } else if (action.action === 'toggleWhitelist') {
+      whitelistModeEnabled = !!action.enabled;
+      saveWhitelistMode();
+      applyCSS();
+      tagAllVideos();
+      removeBlockedEntries();
+      log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
+      try { 
+        if (managementTab && !managementTab.closed) {
+          managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+        }
+      } catch(_) {}
+    } else if (action.action === 'addPattern' && action.pattern) {
+        const newPattern = {
+            pattern: action.pattern,
+            scope: action.scope || 'both'
+        };
+        const exists = blockedTitlePatterns.some(p =>
+        p.pattern === newPattern.pattern && p.scope === newPattern.scope
+        );
+        if (!exists) {
+            blockedTitlePatterns.push(newPattern);
+            saveBlockedTitlePatterns();
+            removeBlockedEntries();
+            log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
+        }
+        try { 
+          if (managementTab && !managementTab.closed) {
+            managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+          }
+        } catch(_) {}
+    } else if (action.action === 'removePattern' && action.pattern) {
+        const scope = action.scope || 'both';
+        blockedTitlePatterns = blockedTitlePatterns.filter(p =>
+          !(p.pattern === action.pattern && p.scope === scope)
+        );
+        saveBlockedTitlePatterns();
+        removeBlockedEntries();
+        log(`[>] Removed title pattern: ${action.pattern} (${scope})`);
+    } else if (action.action === 'removeFromWhitelist' && action.channel) {
+      whitelisted.delete(action.channel);
+      whitelistedDirty = true;
+      saveWhitelist();
+      tagAllVideos();
+      removeBlockedEntries();
+      log(`[>] Removed from whitelist: ${action.channel}`);
+    }
+  }
+
+  // Set up message listener for communication with management tab
+  if (!managerMessageListenerAttached) {
+    managerMessageListenerAttached = true;
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (!data || data.source !== 'detube-manager') return;
+      if (managementTab && event.source && event.source !== managementTab) return;
+      processManagerAction(data);
+    });
+  }
 
   // Listen for storage changes to sync blocklist across tabs
   GM_addValueChangeListener(STORAGE_KEY, async (name, oldValue, newValue, remote) => {
@@ -1692,6 +1902,16 @@
     </div>
 
     <script>
+        // Helper function to post messages to the parent window
+        function post(msg) {
+          if (window.opener && typeof window.opener.postMessage === 'function') {
+            window.opener.postMessage(Object.assign({ source: 'detube-manager' }, msg || {}), '*');
+          } else {
+            // ultra-old fallback
+            try { window.name = JSON.stringify(msg); } catch {}
+          }
+        }
+
         // API endpoint to refresh UI
         function handleRefreshRequest() {
           try {
@@ -1710,36 +1930,7 @@
         };
 
         function refreshPage() {
-          try {
-            const pending = JSON.parse(window.name || 'null');
-            if (pending && pending.action && pending.action !== 'refreshManager') {
-              let retries = 0;
-              const waitForClear = () => {
-                try {
-                  const current = JSON.parse(window.name || 'null');
-                  if (!current || !current.action) {
-                    window.name = JSON.stringify({ action: 'refreshManager' });
-                  } else if (retries < 10) { // 10x200ms max wait
-                    retries++;
-                    setTimeout(waitForClear, 200);
-                  } else {
-                    // Force refresh as ultima ratio
-                    window.name = JSON.stringify({ action: 'refreshManager' });
-                  }
-                } catch (_) {
-                  if (retries < 10) { // also 10x200ms max wait
-                    retries++;
-                    setTimeout(waitForClear, 200);
-                  } else {
-                    window.name = JSON.stringify({ action: 'refreshManager' });
-                  }
-                }
-              };
-              waitForClear();
-              return;
-            }
-          } catch (_) { /* idc */ }
-          window.name = JSON.stringify({ action: 'refreshManager' });
+          post({ action: 'refreshManager' });
         }
 
         function unblockChannel(channelName) {
@@ -1749,7 +1940,7 @@
           const finish = () => {
             try {
               // Post unblock action
-              window.name = JSON.stringify({ action: "unblock", channel: channelName });
+              post({ action: "unblock", channel: channelName });
               // Let UI finish animation before refreshing
               setTimeout(() => {
                 try { refreshPage(); } catch (_) { /* idc */ }
@@ -1782,8 +1973,7 @@
           const item = document.querySelector('.channel-item[data-video-id="' + videoId.replace(/"/g, '\\"') + '"]');
           const finish = () => {
               try {
-                  // Post unblock action
-                  window.name = JSON.stringify({ action: 'unblockVideo', videoId });
+                  post({ action: 'unblockVideo', videoId });
               } catch (_) {
                   // Ignore errors
               }
@@ -1815,7 +2005,7 @@
             const items = Array.from(document.querySelectorAll('.channel-item'));
             const finish = () => {
                 try {
-                    window.name = JSON.stringify({ action: 'clearAll' });
+                    post({ action: 'clearAll' });
                 } catch (_) {/* idc */}
                 setTimeout(() => {
                     try { refreshPage(); } catch (_) { /* idc */ }
@@ -1991,7 +2181,7 @@
 
                         const finish = () => {
                             try {
-                                window.name = JSON.stringify({
+                                post({
                                     action: 'importData',
                                     data: {
                                         blockedNames: names,
@@ -2029,13 +2219,13 @@
             const t = document.getElementById('shorts-toggle');
             if (t) {
                 t.addEventListener('change', () => {
-                    window.name = JSON.stringify({ action: 'toggleShorts', enabled: t.checked });
+                    post({ action: 'toggleShorts', enabled: t.checked });
                 });
             }
             const w = document.getElementById('whitelist-toggle');
             if (w) {
                 w.addEventListener('change', () => {
-                    window.name = JSON.stringify({ action: 'toggleWhitelist', enabled: w.checked });
+                    post({ action: 'toggleWhitelist', enabled: w.checked });
                 });
             }
         });
@@ -2060,8 +2250,7 @@
 
             const finish = () => {
                 try {
-                    // Post addPattern action
-                    window.name = JSON.stringify({ action: 'addPattern', pattern: val, scope });
+                    post({ action: 'addPattern', pattern: val, scope });
                 } catch (_) {
                     // Ignore errors
                 }
@@ -2104,7 +2293,7 @@
 
           const finish = () => {
               try {
-                  window.name = JSON.stringify({ action: 'removePattern', pattern, scope });
+                  post({ action: 'removePattern', pattern, scope });
               } catch (_) { /* idc */ }
               setTimeout(() => {
                   try { refreshPage(); } catch (_) { /* idc */ }
@@ -2139,7 +2328,7 @@
           const item = document.querySelector('.channel-item[data-wchannel="' + channelName.replace(/"/g, '\\"') + '"]');
           const finish = () => {
               try {
-                  window.name = JSON.stringify({ action: 'removeFromWhitelist', channel: channelName });
+                  post({ action: 'removeFromWhitelist', channel: channelName });
               } catch (_) { /* idc */ }
               setTimeout(() => {
                   try { refreshPage(); } catch (_) { /* idc */ }
@@ -2224,194 +2413,10 @@
 
         if (managementTab.window && managementTab.window.name) {
           const action = JSON.parse(managementTab.window.name);
-
-          if (action.action === 'unblock' && action.channel) {
-            blocked.delete(action.channel);
-            blockedDirty = true;
-            saveBlocked();
-            applyCSS();
-            tagAllVideos();
-            log(`[>] Unblocked channel: ${action.channel}`);
-            managementTab.window.name = ''; // Clear action
-          } else if (action.action === 'unblockVideo' && action.videoId) {
-            blockedVideos.delete(action.videoId);
-            saveBlockedVideos();
-            removeBlockedEntries();
-            log(`[>] Unblocked video: ${action.videoId}`);
-            managementTab.window.name = '';
-          } else if (action.action === 'importData' && action.data) {
-            try {
-              let added = 0, duplicates = 0, invalid = 0;
-              if (action.data.blockedNames) {
-                blockedDirty = true;
-                if (Array.isArray(action.data.blockedNames)) {
-                  for (const entry of action.data.blockedNames) {
-                    let name, timestamp;
-                    if (Array.isArray(entry)) {
-                      name = entry[0];
-                      timestamp = entry[1];
-                    } else if (typeof entry === 'string') {
-                      name = entry;
-                      timestamp = Date.now();
-                    } else {
-                      continue;
-                    }
-                    
-                    if (!name || typeof name !== 'string') { invalid++; continue; }
-                    if (blocked.has(name)) { duplicates++; continue; }
-                    blocked.set(name, timestamp);
-                    added++;
-                  }
-                } else if (typeof action.data.blockedNames === 'object' && action.data.blockedNames !== null) {
-                  for (const [name, timestamp] of Object.entries(action.data.blockedNames)) {
-                    if (!name || typeof name !== 'string') { invalid++; continue; }
-                    if (blocked.has(name)) { duplicates++; continue; }
-                    blocked.set(name, timestamp);
-                    added++;
-                  }
-                }
-              }
-              let vAdded = 0;
-              if (action.data.blockedVideos && typeof action.data.blockedVideos === 'object' && action.data.blockedVideos !== null) {
-                for (const [vid, value] of Object.entries(action.data.blockedVideos)) {
-                  if (!vid || typeof vid !== 'string') continue;
-                  if (!blockedVideos.has(vid)) { 
-                    if (typeof value === 'string') {
-                      blockedVideos.set(vid, { title: value, timestamp: Date.now() });
-                    } else if (typeof value === 'object' && value !== null) {
-                      blockedVideos.set(vid, { 
-                        title: value.title || vid, 
-                        timestamp: value.timestamp || Date.now() 
-                      });
-                    }
-                    vAdded++; 
-                  }
-                }
-              }
-              const wlist = Array.isArray(action.data.whitelisted) ? action.data.whitelisted.filter(x => typeof x === 'string') : [];
-              if (wlist.length > 0) whitelistedDirty = true;
-              let wAdded = 0, wDupes = 0;
-              for (const w of wlist) {
-                if (whitelisted.has(w)) { wDupes++; continue; }
-                whitelisted.add(w); wAdded++;
-              }
-              let pats = [];
-              if (Array.isArray(action.data.blockedTitlePatterns)) {
-                  pats = action.data.blockedTitlePatterns.map(p => {
-                  if (typeof p === 'string') {
-                      return { pattern: p, scope: 'both' };
-                  } else if (typeof p === 'object' && p.pattern) {
-                      return {
-                      pattern: p.pattern,
-                      scope: p.scope || 'both'
-                      };
-                  }
-                  return null;
-                  }).filter(p => p !== null);
-              }
-
-              let pAdded = 0, pDupes = 0;
-              for (const patObj of pats) {
-                  const exists = blockedTitlePatterns.some(p =>
-                  p.pattern === patObj.pattern && p.scope === patObj.scope
-                  );
-
-                  if (!exists) {
-                  blockedTitlePatterns.push(patObj);
-                  pAdded++;
-                  } else {
-                  pDupes++;
-                  }
-              }
-              saveBlocked();
-              saveBlockedVideos();
-              saveWhitelist();
-              saveBlockedTitlePatterns();
-              applyCSS();
-              tagAllVideos();
-              removeBlockedEntries();
-            } catch (e) {
-              log('Import error:', e);
-            }
-            try {
-              managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
-              log('Sent refresh signal to management tab');
-            } catch(e) {
-              log('Error refreshing management tab:', e);
-            }
-          } else if (action.action === 'clearAll') {
-            blocked.clear();
-            blockedDirty = true;
-            blockedVideos.clear();
-            blockedTitlePatterns = [];
-            whitelisted.clear();
-            whitelistedDirty = true;
-            saveBlocked();
-            saveBlockedVideos();
-            saveBlockedTitlePatterns();
-            saveWhitelist();
-            applyCSS();
-            tagAllVideos();
-            removeBlockedEntries();
-            log('[>] Cleared all blocked channels and videos');
-            managementTab.window.name = '';
-          } else if (action.action === 'refreshManager') {
-            const freshHtml = generateBlockedChannelsHTML(updateNotificationShown);
-            const freshBlob = new Blob([freshHtml], { type: 'text/html' });
-            const freshUrl = URL.createObjectURL(freshBlob);
-            if (managementTabUrl) {
-                URL.revokeObjectURL(managementTabUrl);
-            }
-            managementTabUrl = freshUrl;
-            try { managementTab.location.href = managementTabUrl; } catch (_) { /* idc */ }
-            try { managementTab.window.name = ''; } catch (_) { /* idc */ }
-          } else if (action.action === 'toggleShorts') {
-            shortsEnabled = !!action.enabled;
-            saveShortsSetting();
-            setupShortsBlocking(shortsEnabled);
-            log(`[>] Shorts blocking: ${shortsEnabled ? 'ENABLED' : 'DISABLED'}`);
-            managementTab.window.name = '';
-          } else if (action.action === 'toggleWhitelist') {
-            whitelistModeEnabled = !!action.enabled;
-            saveWhitelistMode();
-            applyCSS();
-            tagAllVideos();
-            removeBlockedEntries();
-            log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
-            try { managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
-          } else if (action.action === 'addPattern' && action.pattern) {
-              const newPattern = {
-                  pattern: action.pattern,
-                  scope: action.scope || 'both'
-              };
-              const exists = blockedTitlePatterns.some(p =>
-              p.pattern === newPattern.pattern && p.scope === newPattern.scope
-              );
-              if (!exists) {
-                  blockedTitlePatterns.push(newPattern);
-                  saveBlockedTitlePatterns();
-                  removeBlockedEntries();
-                  log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
-              }
-              try { managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
-          } else if (action.action === 'removePattern' && action.pattern) {
-              const scope = action.scope || 'both';
-              blockedTitlePatterns = blockedTitlePatterns.filter(p =>
-                !(p.pattern === action.pattern && p.scope === scope)
-              );
-              saveBlockedTitlePatterns();
-              removeBlockedEntries();
-              log(`[>] Removed title pattern: ${action.pattern} (${scope})`);
-              managementTab.window.name = '';
-          } else if (action.action === 'removeFromWhitelist' && action.channel) {
-            whitelisted.delete(action.channel);
-            whitelistedDirty = true;
-            saveWhitelist();
-            tagAllVideos();
-            removeBlockedEntries();
-            log(`[>] Removed from whitelist: ${action.channel}`);
-            managementTab.window.name = '';
-          }
+          processManagerAction(action);
+          // Clear action to avoid double-handling
+          managementTab.window.name = '';
+          return;
         }
       } catch (e) { /* idc */}
     }, 500);
@@ -2551,11 +2556,16 @@
     }
   };
 
-  // If opened, trigger management UI refresh
   function refreshUI() {
+    // Calling this refreshes the management UI
     try {
       if (managementTab && !managementTab.closed) {
-        managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+        // Try postMessage first, fallback is window.name
+        if (managerMessageListenerAttached && managementTab.postMessage) {
+          managementTab.postMessage({ source: 'detube-manager', action: 'refreshManager' }, '*');
+        } else {
+          managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+        }
         return true;
       }
       return false;
@@ -2611,6 +2621,7 @@
       loadShortsSetting(),
       loadBlockedTitlePatterns()
     ]);
+
     // This has to await the above pre-heating stage
     await loadWhitelist();
 
