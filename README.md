@@ -94,6 +94,8 @@ We ask all contributors to follow our [Code of Conduct](CODE_OF_CONDUCT.md) to k
 
 ## Understanding Regex Patterns
 
+This is just a small primer for using regex patterns in this userscript.<br>For more details, see the [wiki page](https://github.com/polymegos/deTube_channel_blocker/wiki/Configuration-&-Troubleshooting#advanced-blocking-with-regex) on advanced blocking with regex.
+
 The deTube Channel Blocker uses JavaScript's standard `RegExp` object for pattern matching.<br>
 This means you can use any valid JavaScript regular expression to block content.
 
@@ -106,69 +108,53 @@ If either matches the pattern, the video will be hidden.
 
 **Pattern:** `React`
 
-* Blocks any video title or channel name containing **"React"** (case-sensitive).
-* Would block: "Learning React", "React Native Tutorial", "ReactChannel"
-* Would **not** block: "react", "REACT"
+* Blocks any video title or channel name containing **"React"** (case-insensitive).
+* Would block: "Learning React", "React Native Tutorial", "ReactChannel", "reacting to XYZ"
 
-#### 2. Block specific words (case-insensitive)
-
-**Pattern:** `React`
-**Flag:** `\i`
-
-* Use the `\i` flag for case-insensitive matching.
-* `React\i` would block: "React", "react", "REACT", etc.
-
-#### 3. Block whole word only
+#### 2. Block whole word only
 
 **Pattern:** `\bReact\b`
-**Flag:** (optional `\i`)
 
-* `\bReact\b` blocks only when "React" appears as a whole word.
-* `\bReact\b` would block: "Learning React"
-* `\bReact\b\i` would block: "Learning react" and "Learning ReAcT" aswell
+* `\bReact\b` blocks only when "React" / "react" / "ReAcT" / ... appears as a whole word.
+* `\bReact\b` would block: "Learning React", but not "reacting to XYZ"
 
-#### 4. Block multiple words
+#### 3. Block multiple words
 
 **Pattern:** `React|Vue|Angular`
-**Flag:** (optional `\i`)
 
 * Blocks any video containing "React", "Vue", or "Angular".
 * Would block: "Vue.js Tutorial", "Angular Fundamentals", "React vs Vue"
 
-#### 5. Block specific phrases (case-insensitive)
+#### 4. Block specific phrases (case-insensitive)
 
 **Pattern:** `how to.*react`
-**Flag:** `\i`
 
 * Blocks videos with titles like "How to Learn React", "How to Build a React App"
 * `.*` matches any characters between "how to" and "react"
 
-#### 6. Block by channel name (case-insensitive)
+#### 5. Block by channel name (case-insensitive)
 
 **Pattern:** `techreview`
-**Flag:** `\i`
 
 * Blocks all videos from channels with "techreview" in their name
 * Would block: "TechReview Central", "NewTechReviews", etc.
 
-#### 7. Block clickbait-style titles
+#### 6. Block clickbait-style titles
 
 **Pattern:** `\b\d+\s*(clever|genius|incredible|mind-blowing)\b`
-**Flag:** `\i`
 
 * Blocks titles like "10 Clever Hacks", "5 Incredible Tricks", etc.
 
-#### 8. Block non-English content (example: Chinese characters)
+#### 7. Block non-English content (example: Chinese characters)
 
 **Pattern:** `[一-龯]+`
 
 * Blocks content with Chinese characters
 * You can adjust Unicode ranges for other languages (e.g., Cyrillic: `[А-я]`, Arabic: `[\u0600-\u06FF]`)
 
-#### 9. Block specific content types
+#### 8. Block specific content types
 
 **Pattern:** `\b(short|compilation|fails)\b`
-**Flag:** `\i`
 
 * Blocks content categorized as shorts, compilations, or fails
 
@@ -182,7 +168,7 @@ When testing, remember that your patterns will be matched against both video tit
 
 ### Important Notes
 
-1. **Case Sensitivity**: By default, patterns are case-sensitive. Use `(?i)` at the beginning of your pattern to make it case-insensitive.
+1. **Case Sensitivity**: By default, patterns are case-insensitive.
 2. **Word Boundaries**: Use `\b` to match whole words only. For example, `\bReact\b` will match "React" but not "ReactNative".
 3. **Special Characters**: If you want to match special regex characters literally (like `.`, `*`, `?`, etc.), you need to escape them with a backslash. For example, to match a literal question mark, use `\?`.
 4. **Performance**: Very broad patterns may slow down page loading. Try to be as specific as possible.
