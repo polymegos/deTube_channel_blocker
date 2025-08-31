@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.1
+// @version         0.2.2 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const VERSION = "0.2.1";
+  const VERSION = "0.2.2 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -106,6 +106,8 @@
 
   // Update notification
   let updateNotificationShown = false;
+  let managementTab = null;
+  let managementTabUrl = null;
 
   // Video blocker persistence
   const VIDEOS_STORAGE_KEY = 'detube_blocked_videos_store_v1';
@@ -114,6 +116,12 @@
   // Regex persistence
   const REGEX_STORAGE_KEY = 'detube_blocked_title_patterns';
   let blockedTitlePatterns = [];
+
+  // Caching for lowercase lists
+  let whitelistedLower = new Set();
+  let blockedLower = new Set();
+  let whitelistedDirty = true;
+  let blockedDirty = true;
 
   // Shorts blocker persistence
   const SHORTS_STORAGE_KEY = 'detube_shorts_block_enabled';
@@ -136,6 +144,7 @@
         } else {
           blocked = new Map();
         }
+        blockedDirty = true;
         // Re-apply blocking rules
         removeBlockedEntries();
       } catch (e) {
@@ -215,6 +224,7 @@
       } else {
         blocked = new Map();
       }
+      blockedDirty = true;
       //log('Loaded blocked:', [...blocked]);
     } catch(e){ blocked = new Map(); log('Load-error', e); }
   }
@@ -225,6 +235,7 @@
       const raw = await GM_getValue(WHITELIST_STORAGE_KEY, '[]');
       const arr = JSON.parse(raw);
       whitelisted = new Set(Array.isArray(arr) ? arr.filter(x => typeof x === 'string') : []);
+      whitelistedDirty = true;
       //log('Loaded whitelist:', [...whitelisted]);
     } catch (e) {
       whitelisted = new Set();
@@ -241,6 +252,7 @@
   }
 
   async function saveWhitelist() {
+    whitelistedDirty = true;
     await GM_setValue(WHITELIST_STORAGE_KEY, JSON.stringify([...whitelisted]));
   }
 
@@ -357,6 +369,7 @@
   }
 
   async function saveBlocked() {
+    blockedDirty = true;
     // Persist blocked channels and force update in other tabs
     const blocklist = JSON.stringify(Object.fromEntries(blocked));
     await GM_setValue(STORAGE_KEY, blocklist);
@@ -470,13 +483,19 @@
   const regexCache = new Map();
 
   function removeBlockedEntries() {
+    if (whitelistedDirty) {
+        whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
+        whitelistedDirty = false;
+    }
+    if (blockedDirty) {
+        blockedLower = new Set([...blocked.keys()].map(w => w.toLowerCase()));
+        blockedDirty = false;
+    }
     // Batch process videos to reduce DOM reflows
     const videos = document.querySelectorAll(VIDEO_SELECTORS.join(','));
     const channelEntries = document.querySelectorAll('div.style-scope.ytd-channel-renderer');
     const shelfRenderers = document.querySelectorAll('div.style-scope.ytd-shelf-renderer');
     const emptyContentDivs = document.querySelectorAll(EMPTY_CONTENT_SELECTORS);
-    const whitelistedLower = new Set([...whitelisted].map(w => w.toLowerCase()));
-    const blockedLower = new Set([...blocked.keys()].map(w => w.toLowerCase()));
     const toHide = [];
 
     // Process channel entries in search results
@@ -1091,7 +1110,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>deTube Blocker ${VERSION}</title>
+    <title>deTube Blocker</title>
     <style>
         * {
             margin: 0;
@@ -2172,62 +2191,70 @@
     return false; // No update or error
   }
 
-  async function openBlockedChannelsTab() {
-    // Show management UI immediately, not waiting for update check
-    const html = generateBlockedChannelsHTML(false);
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const newTab = window.open(url, '_blank');
+  function cleanupManagementTab() {
+    if (managementTabUrl) {
+      URL.revokeObjectURL(managementTabUrl);
+      managementTabUrl = null;
+    }
+    if (managementTab) {
+        managementTab = null;
+    }
+  }
 
-    // Store management tab reference for API access
-    if (!window.detubeManagementTab) {
-      window.detubeManagementTab = newTab;
+  async function openBlockedChannelsTab() {
+    if (managementTab && !managementTab.closed) {
+      managementTab.focus();
+      return;
     }
 
-    // Monitor the new tab for actions
+    cleanupManagementTab(); // Clean up any previous instances
+
+    const html = generateBlockedChannelsHTML(false);
+    const blob = new Blob([html], { type: 'text/html' });
+    managementTabUrl = URL.createObjectURL(blob);
+    managementTab = window.open(managementTabUrl, '_blank');
+
     const checkForActions = setInterval(() => {
       try {
-        if (newTab.closed) {
+        if (!managementTab || managementTab.closed) {
           clearInterval(checkForActions);
-          URL.revokeObjectURL(url);
+          cleanupManagementTab();
           return;
         }
 
-        if (newTab.window && newTab.window.name) {
-          const action = JSON.parse(newTab.window.name);
+        if (managementTab.window && managementTab.window.name) {
+          const action = JSON.parse(managementTab.window.name);
 
           if (action.action === 'unblock' && action.channel) {
             blocked.delete(action.channel);
+            blockedDirty = true;
             saveBlocked();
             applyCSS();
             tagAllVideos();
             log(`[>] Unblocked channel: ${action.channel}`);
-            newTab.window.name = ''; // Clear action
+            managementTab.window.name = ''; // Clear action
           } else if (action.action === 'unblockVideo' && action.videoId) {
             blockedVideos.delete(action.videoId);
             saveBlockedVideos();
             removeBlockedEntries();
             log(`[>] Unblocked video: ${action.videoId}`);
-            newTab.window.name = '';
+            managementTab.window.name = '';
           } else if (action.action === 'importData' && action.data) {
             try {
               let added = 0, duplicates = 0, invalid = 0;
-              // Handle blockedNames (could be array for legacy, array of arrays for current, or object for new format)
               if (action.data.blockedNames) {
+                blockedDirty = true;
                 if (Array.isArray(action.data.blockedNames)) {
-                  // Could be legacy format (array of strings) or current format (array of [name, timestamp] arrays)
                   for (const entry of action.data.blockedNames) {
                     let name, timestamp;
                     if (Array.isArray(entry)) {
-                      // Current format: [name, timestamp]
                       name = entry[0];
                       timestamp = entry[1];
                     } else if (typeof entry === 'string') {
-                      // Legacy format: just name
                       name = entry;
                       timestamp = Date.now();
                     } else {
-                      continue; // Invalid entry
+                      continue;
                     }
                     
                     if (!name || typeof name !== 'string') { invalid++; continue; }
@@ -2236,7 +2263,6 @@
                     added++;
                   }
                 } else if (typeof action.data.blockedNames === 'object' && action.data.blockedNames !== null) {
-                  // New object format with timestamps
                   for (const [name, timestamp] of Object.entries(action.data.blockedNames)) {
                     if (!name || typeof name !== 'string') { invalid++; continue; }
                     if (blocked.has(name)) { duplicates++; continue; }
@@ -2245,18 +2271,14 @@
                   }
                 }
               }
-              // Merge videos
               let vAdded = 0;
               if (action.data.blockedVideos && typeof action.data.blockedVideos === 'object' && action.data.blockedVideos !== null) {
                 for (const [vid, value] of Object.entries(action.data.blockedVideos)) {
                   if (!vid || typeof vid !== 'string') continue;
                   if (!blockedVideos.has(vid)) { 
-                    // Handle both legacy format (string) and new format (object)
                     if (typeof value === 'string') {
-                      // Legacy format: just title
                       blockedVideos.set(vid, { title: value, timestamp: Date.now() });
                     } else if (typeof value === 'object' && value !== null) {
-                      // New format: object with title and timestamp
                       blockedVideos.set(vid, { 
                         title: value.title || vid, 
                         timestamp: value.timestamp || Date.now() 
@@ -2266,17 +2288,15 @@
                   }
                 }
               }
-              // Merge whitelisted channels
               const wlist = Array.isArray(action.data.whitelisted) ? action.data.whitelisted.filter(x => typeof x === 'string') : [];
+              if (wlist.length > 0) whitelistedDirty = true;
               let wAdded = 0, wDupes = 0;
               for (const w of wlist) {
                 if (whitelisted.has(w)) { wDupes++; continue; }
                 whitelisted.add(w); wAdded++;
               }
-              // Merge title patterns
               let pats = [];
               if (Array.isArray(action.data.blockedTitlePatterns)) {
-                  // Handle both old format (strings) and new format (objects)
                   pats = action.data.blockedTitlePatterns.map(p => {
                   if (typeof p === 'string') {
                       return { pattern: p, scope: 'both' };
@@ -2292,7 +2312,6 @@
 
               let pAdded = 0, pDupes = 0;
               for (const patObj of pats) {
-                  // Check if pattern with same scope already exists
                   const exists = blockedTitlePatterns.some(p =>
                   p.pattern === patObj.pattern && p.scope === patObj.scope
                   );
@@ -2311,22 +2330,22 @@
               applyCSS();
               tagAllVideos();
               removeBlockedEntries();
-              //log(`[>] Import merged: +${added} channels, +${vAdded} videos, +${pAdded} patterns, +${wAdded} whitelisted; dupes channels ${duplicates}, patterns ${pDupes}, whitelist ${wDupes}; invalid ${invalid}`);
             } catch (e) {
               log('Import error:', e);
             }
-            // Ask the manager page to refresh
             try {
-              newTab.window.name = JSON.stringify({ action: 'refreshManager' });
+              managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
               log('Sent refresh signal to management tab');
             } catch(e) {
               log('Error refreshing management tab:', e);
             }
           } else if (action.action === 'clearAll') {
             blocked.clear();
+            blockedDirty = true;
             blockedVideos.clear();
             blockedTitlePatterns = [];
             whitelisted.clear();
+            whitelistedDirty = true;
             saveBlocked();
             saveBlockedVideos();
             saveBlockedTitlePatterns();
@@ -2335,166 +2354,129 @@
             tagAllVideos();
             removeBlockedEntries();
             log('[>] Cleared all blocked channels and videos');
-            newTab.window.name = ''; // Clear action again
+            managementTab.window.name = '';
           } else if (action.action === 'refreshManager') {
-            // Rebuild the manager UI from current state and navigate the tab to it
-            const freshUrl = URL.createObjectURL(new Blob([generateBlockedChannelsHTML(updateNotificationShown)], { type: 'text/html' }));
-            try { newTab.location.href = freshUrl; } catch (_) { /* idc */ }
-            // Clear, avoids repeated triggers of refreshManager after navigating to the new URL
-            try { newTab.window.name = ''; } catch (_) { /* idc */ }
+            const freshHtml = generateBlockedChannelsHTML(updateNotificationShown);
+            const freshBlob = new Blob([freshHtml], { type: 'text/html' });
+            const freshUrl = URL.createObjectURL(freshBlob);
+            if (managementTabUrl) {
+                URL.revokeObjectURL(managementTabUrl);
+            }
+            managementTabUrl = freshUrl;
+            try { managementTab.location.href = managementTabUrl; } catch (_) { /* idc */ }
+            try { managementTab.window.name = ''; } catch (_) { /* idc */ }
           } else if (action.action === 'toggleShorts') {
             shortsEnabled = !!action.enabled;
             saveShortsSetting();
             setupShortsBlocking(shortsEnabled);
             log(`[>] Shorts blocking: ${shortsEnabled ? 'ENABLED' : 'DISABLED'}`);
-            newTab.window.name = '';
+            managementTab.window.name = '';
           } else if (action.action === 'toggleWhitelist') {
             whitelistModeEnabled = !!action.enabled;
             saveWhitelistMode();
-            // Recompute filtering and CSS
             applyCSS();
             tagAllVideos();
             removeBlockedEntries();
             log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
-            // Ask manager page to refresh so the correct list and controls are shown
-            try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
+            try { managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'addPattern' && action.pattern) {
               const newPattern = {
                   pattern: action.pattern,
                   scope: action.scope || 'both'
               };
-
-              // Check if pattern with same scope already exists
               const exists = blockedTitlePatterns.some(p =>
               p.pattern === newPattern.pattern && p.scope === newPattern.scope
               );
-
               if (!exists) {
                   blockedTitlePatterns.push(newPattern);
                   saveBlockedTitlePatterns();
                   removeBlockedEntries();
                   log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
               }
-              // Refresh manager to show the newly added pattern (and allow any UI animation)
-              try { newTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
+              try { managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); } catch(_) {}
           } else if (action.action === 'removePattern' && action.pattern) {
               const scope = action.scope || 'both';
               blockedTitlePatterns = blockedTitlePatterns.filter(p =>
-              !(p.pattern === action.pattern && p.scope === scope)
+                !(p.pattern === action.pattern && p.scope === scope)
               );
               saveBlockedTitlePatterns();
               removeBlockedEntries();
               log(`[>] Removed title pattern: ${action.pattern} (${scope})`);
-              newTab.window.name = '';
+              managementTab.window.name = '';
           } else if (action.action === 'removeFromWhitelist' && action.channel) {
             whitelisted.delete(action.channel);
+            whitelistedDirty = true;
             saveWhitelist();
             tagAllVideos();
             removeBlockedEntries();
             log(`[>] Removed from whitelist: ${action.channel}`);
-            newTab.window.name = '';
+            managementTab.window.name = '';
           }
         }
       } catch (e) { /* idc */}
     }, 500);
 
-    // Check for updates in the background and update the UI if needed
     checkForUpdates().then(updateAvailable => {
-      if (updateAvailable && newTab && !newTab.closed) {
+      if (updateAvailable && managementTab && !managementTab.closed) {
         try {
-          // Generate new HTML with update notification and update the tab
           const updatedHtml = generateBlockedChannelsHTML(true);
           const updatedBlob = new Blob([updatedHtml], { type: 'text/html' });
           const updatedUrl = URL.createObjectURL(updatedBlob);
-          newTab.location.href = updatedUrl;
+          if (managementTabUrl) {
+            URL.revokeObjectURL(managementTabUrl);
+          }
+          managementTabUrl = updatedUrl;
+          managementTab.location.href = managementTabUrl;
         } catch (e) {
           log('Error updating management tab with update notification:', e);
         }
       }
     });
-
-    // Stop checking after 2 hours
-    setTimeout(() => {
-      clearInterval(checkForActions);
-      URL.revokeObjectURL(url);
-    }, 7200000);
   }
 
   function observeNewVideos() {
-    // Debounce processing to avoid excessive calls
     let processingTimeout = null;
 
+    const processNodes = (nodes) => {
+        for (const node of nodes) {
+            if (!(node instanceof HTMLElement)) continue;
+
+            if (node.matches(VIDEO_SELECTORS.join(','))) {
+                if (tagVideo(node)) {
+                    filterVideo(node);
+                }
+            } else if (node.querySelector) {
+                const videos = node.querySelectorAll(VIDEO_SELECTORS.join(','));
+                for (const video of videos) {
+                    if (tagVideo(video)) {
+                        filterVideo(video);
+                    }
+                }
+            }
+            
+            if (node.matches(EMPTY_CONTENT_SELECTORS)) {
+                node.hidden = true;
+            } else if (node.querySelector) {
+                const emptyDivs = node.querySelectorAll(EMPTY_CONTENT_SELECTORS);
+                for (const div of emptyDivs) {
+                    div.hidden = true;
+                }
+            }
+        }
+    };
+
     const observer = new MutationObserver(mutations => {
-      // Clear existing timeout to debounce
       if (processingTimeout) {
         clearTimeout(processingTimeout);
       }
 
-      // Schedule processing with debounce
       processingTimeout = setTimeout(() => {
-        let newVideosFound = false;
-        let newEmptyDivsFound = false;
         for (const mutation of mutations) {
-          for (const node of mutation.addedNodes) {
-            if (!(node instanceof HTMLElement)) continue;
-            // More specific selectors for better performance
-            if (node.matches(VIDEO_SELECTORS.join(',')) ||
-                node.querySelector && node.querySelector(VIDEO_SELECTORS.join(','))) {
-              newVideosFound = true;
-              break;
-            }
-            // Check for empty content divs
-            if (node.matches(EMPTY_CONTENT_SELECTORS) ||
-                (node.querySelector && node.querySelector(EMPTY_CONTENT_SELECTORS))) {
-              newEmptyDivsFound = true;
-            }
-          }
-          if (newVideosFound && newEmptyDivsFound) break;
-        }
-
-        if (newVideosFound) {
-          // Only process newly added videos instead of all videos
-          for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-              if (!(node instanceof HTMLElement)) continue;
-              if (node.matches(VIDEO_SELECTORS.join(','))) {
-                if (tagVideo(node)) {
-                  // Apply filtering to just this video
-                  filterVideo(node);
-                }
-              } else if (node.querySelector) {
-                // Process child videos
-                const videos = node.querySelectorAll(VIDEO_SELECTORS.join(','));
-                for (const video of videos) {
-                  if (tagVideo(video)) {
-                    filterVideo(video);
-                  }
-                }
-              }
-            }
+          if (mutation.addedNodes.length > 0) {
+            processNodes(mutation.addedNodes);
           }
         }
-        
-        if (newEmptyDivsFound) {
-          // Handle empty content divs
-          for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-              if (!(node instanceof HTMLElement)) continue;
-              // Check if node itself matches empty content selector
-              if (node.matches(EMPTY_CONTENT_SELECTORS)) {
-                node.hidden = true;
-              } 
-              // Check if node contains empty content divs
-              else if (node.querySelector) {
-                const emptyDivs = node.querySelectorAll(EMPTY_CONTENT_SELECTORS);
-                for (const div of emptyDivs) {
-                  div.hidden = true;
-                }
-              }
-            }
-          }
-        }
-      }, 100); // debounce
+      }, 100);
     });
 
     observer.observe(document.body, {
@@ -2572,8 +2554,8 @@
   // If opened, trigger management UI refresh
   function refreshUI() {
     try {
-      if (window.detubeManagementTab && !window.detubeManagementTab.closed) {
-        window.detubeManagementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+      if (managementTab && !managementTab.closed) {
+        managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
         return true;
       }
       return false;
@@ -2583,10 +2565,10 @@
     }
   }
 
-  // Single delegated click handler for all detube actions
   document.body.addEventListener('click', e => {
+    const target = e.target;
     // Handle management button click
-    const manageBtn = e.target.closest('[data-detube-action="open-manager"]');
+    const manageBtn = target.closest('[data-detube-action="open-manager"]');
     if (manageBtn) {
       e.preventDefault();
       e.stopPropagation();
@@ -2594,41 +2576,32 @@
       return;
     }
 
-    // Handle three-dot menu button
-    const dot = e.target.closest('div.yt-spec-touch-feedback-shape__fill');
-    if (!dot) return;
-    const renderer = dot.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
-    handleThreeDotClick(renderer);
-    // Proactively schedule search popup injection
-    try {
-      if (renderer && tagVideo(renderer)) {
-        const ch = renderer.dataset.detube;
-        if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
-      }
-    } catch(_) {}
-  }, true);
+    // Handle three-dot menu button (two variants)
+    const dot = target.closest('div.yt-spec-touch-feedback-shape__fill');
+    const iconButton = target.closest('button.style-scope.yt-icon-button');
 
-  // Handle clicks on the new three-dot menu button
-  document.body.addEventListener('click', e => {
-    const button = e.target.closest('button.style-scope.yt-icon-button');
-    if (!button) return;
-
-    // Check if this is a three-dot menu button by its icon or by being inside ytd-menu-renderer
-    let isThreeDot = false;
-    const icon = button.querySelector('yt-icon');
-    if (icon && icon.getAttribute('icon')?.includes('more_vert')) isThreeDot = true;
-    if (!isThreeDot && button.id === 'button' && button.closest('ytd-menu-renderer')) isThreeDot = true;
-    if (!isThreeDot) return;
-
-    const renderer = button.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
-    handleThreeDotClick(renderer);
-    // Proactively schedule search popup injection
-    try {
-      if (renderer && tagVideo(renderer)) {
-        const ch = renderer.dataset.detube;
-        if (ch) { scheduleSearchMenuInjection(ch, renderer); scheduleClickLabelInit(ch, renderer); }
-      }
-    } catch(_) { /* idc */ }
+    let renderer = null;
+    if (dot) {
+        renderer = dot.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
+    } else if (iconButton) {
+        const icon = iconButton.querySelector('yt-icon');
+        const isThreeDot = (icon && icon.getAttribute('icon')?.includes('more_vert')) || (iconButton.id === 'button' && iconButton.closest('ytd-menu-renderer'));
+        if (isThreeDot) {
+            renderer = iconButton.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
+        }
+    }
+    
+    if (renderer) {
+        handleThreeDotClick(renderer);
+        try {
+          if (tagVideo(renderer)) {
+            const ch = renderer.dataset.detube;
+            if (ch) { 
+                scheduleSearchMenuInjection(ch, renderer);
+            }
+          }
+        } catch(_) {}
+    }
   }, true);
 
   (async () => {
