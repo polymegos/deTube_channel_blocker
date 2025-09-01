@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.2
+// @version         0.2.3 Dev
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const VERSION = "0.2.2";
+  const VERSION = "0.2.3 Dev";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -972,7 +972,9 @@
       saveBlocked();
       applyCSS();
       tagAllVideos();
-      refreshUI();
+      removeBlockedEntries();
+      // Schedule a UI refresh
+      scheduleUIRefresh();
       log(`[>] Blocked channel: ${channel}`);
     });
 
@@ -1016,7 +1018,8 @@
       blockedVideos.set(id, { title, timestamp: Date.now() });
       saveBlockedVideos();
       removeBlockedEntries();
-      refreshUI();
+      // Schedule a UI refresh
+      scheduleUIRefresh();
       log(`[>] Blocked video: ${title} (${id})`);
     });
 
@@ -1056,7 +1059,8 @@
         tagAllVideos();
         removeBlockedEntries();
       }
-      refreshUI();
+      // Schedule a UI refresh
+      scheduleUIRefresh();
       log(`[>] Whitelisted channel: ${channel}`);
     });
 
@@ -1134,6 +1138,9 @@
       saveBlocked();
       applyCSS();
       tagAllVideos();
+      removeBlockedEntries();
+      // Schedule a UI refresh
+      scheduleUIRefresh();
       log(`[>] Blocked channel: ${channel}`);
     }, 'blockChannel');
 
@@ -1146,6 +1153,8 @@
         blockedVideos.set(id, { title, timestamp: Date.now() });
         saveBlockedVideos();
         removeBlockedEntries();
+        // Schedule a UI refresh
+        scheduleUIRefresh();
         log(`[>] Blocked video: ${title} (${id})`);
       }, 'blockVideo');
     } else {
@@ -1160,6 +1169,8 @@
         tagAllVideos();
         removeBlockedEntries();
       }
+      // Schedule a UI refresh
+      scheduleUIRefresh();
       log(`[>] Whitelisted channel: ${channel}`);
     }, 'whitelist');
 
@@ -1293,7 +1304,7 @@
             ${channel.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
           </span>
           <div class="timestamp" style="font-size: 0.8em; opacity: 0.7; white-space: nowrap;">
-            Added: ${date}
+            ${date}
           </div>
         </div>
         <button class="unblock-btn" onclick="unblockChannel('${channel.replace(/'/g, "\\'")}')">
@@ -1919,7 +1930,6 @@
         <div class="footer" style="display:flex; justify-content:space-between; align-items:center; padding: 12px 20px;">
           <span>deTube Blocker ${VERSION}</span>
           <span><a class="footer-link" href="https://github.com/polymegos/deTube_channel_blocker" target="_blank">Help & Feedback</a></span>
-          <span><a class="footer-link" href="https://greasyfork.org/scripts/545112-detube-disable-ai-audio" target="_blank">Disable AI Translations</a></span>
         </div>
     </div>
 
@@ -2228,38 +2238,58 @@
         }
 
         // Shorts + Whitelist toggle handling
-        document.addEventListener('DOMContentLoaded', () => {
+        // Using a more robust approach that works even after tab inactivity
+        function attachToggleListeners() {
             const t = document.getElementById('shorts-toggle');
             if (t) {
-                t.addEventListener('change', () => {
-                    post({ action: 'toggleShorts', enabled: t.checked });
-                });
+                // Remove any existing listeners to prevent duplicates
+                t.removeEventListener('change', handleShortsToggle);
+                t.addEventListener('change', handleShortsToggle);
             }
             const w = document.getElementById('whitelist-toggle');
             if (w) {
-                w.addEventListener('change', () => {
-                    post({ action: 'toggleWhitelist', enabled: w.checked });
-                });
+                // Remove any existing listeners to prevent duplicates
+                w.removeEventListener('change', handleWhitelistToggle);
+                w.addEventListener('change', handleWhitelistToggle);
             }
+        }
 
-            window.addEventListener('message', (event) => {
-              if (event.data && event.data.source === 'detube-parent' && event.data.action === 'exportData') {
-                try {
-                  const payload = event.data.data;
-                  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
-                  a.download = 'detube-export-' + stamp + '.json';
-                  document.body.appendChild(a);
-                  a.click();
-                  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
-                } catch (e) {
-                  try { alert('Export failed: ' + e); } catch(_){ /* idc */ }
-                }
-              }
-            });
+        function handleShortsToggle(e) {
+            post({ action: 'toggleShorts', enabled: e.target.checked });
+        }
+
+        function handleWhitelistToggle(e) {
+            post({ action: 'toggleWhitelist', enabled: e.target.checked });
+        }
+
+        // Attach listeners when DOM is ready, but also provide a way to reattach them
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachToggleListeners);
+        } else {
+            // DOM is already ready
+            attachToggleListeners();
+        }
+
+        // Also reattach listeners when the page is focused again after being in the background
+        window.addEventListener('focus', attachToggleListeners);
+
+        window.addEventListener('message', (event) => {
+          if (event.data && event.data.source === 'detube-parent' && event.data.action === 'exportData') {
+            try {
+              const payload = event.data.data;
+              const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+              a.download = 'detube-export-' + stamp + '.json';
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+            } catch (e) {
+              try { alert('Export failed: ' + e); } catch(_){ /* idc */ }
+            }
+          }
         });
 
         function addPattern() {
@@ -2593,18 +2623,69 @@
     try {
       if (managementTab && !managementTab.closed) {
         // Try postMessage first, fallback is window.name
+        let success = false;
         if (managerMessageListenerAttached && managementTab.postMessage) {
-          managementTab.postMessage({ source: 'detube-manager', action: 'refreshManager' }, '*');
-        } else {
-          managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+          try {
+            managementTab.postMessage({ source: 'detube-manager', action: 'refreshManager' }, '*');
+            success = true;
+          } catch (e) {
+            log('PostMessage failed, trying window.name fallback:', e);
+          }
         }
-        return true;
+
+        // Fallback to window.name if postMessage failed or isn't available
+        if (!success) {
+          try {
+            managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
+            success = true;
+          } catch (e) {
+            log('Window.name fallback also failed:', e);
+          }
+        }
+
+        // Additional fallback: force refresh the management tab content
+        if (success) {
+          setTimeout(() => {
+            try {
+              if (managementTab && !managementTab.closed) {
+                const freshHtml = generateBlockedChannelsHTML(updateNotificationShown);
+                const freshBlob = new Blob([freshHtml], { type: 'text/html' });
+                const freshUrl = URL.createObjectURL(freshBlob);
+                if (managementTabUrl) {
+                  URL.revokeObjectURL(managementTabUrl);
+                }
+                managementTabUrl = freshUrl;
+                managementTab.location.href = managementTabUrl;
+              }
+            } catch (e) {
+              log('Forced refresh also failed:', e);
+            }
+          }, 300);
+        }
+
+        return success;
       }
       return false;
     } catch (e) {
       log('Error refreshing management UI:', e);
       return false;
     }
+  }
+
+  // Keep track of pending UI updates
+  let pendingUIRefresh = false;
+  let uiRefreshTimeout = null;
+
+  // Enhanced refreshUI function that debounces calls
+  function scheduleUIRefresh() {
+    if (uiRefreshTimeout) {
+      clearTimeout(uiRefreshTimeout);
+    }
+
+    uiRefreshTimeout = setTimeout(() => {
+      refreshUI();
+      pendingUIRefresh = false;
+    }, 100);
   }
 
   document.body.addEventListener('click', e => {
