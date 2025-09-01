@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.2 Dev 2
+// @version         0.2.2 Dev 3
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const VERSION = "0.2.2 Dev 2";
+  const VERSION = "0.2.2 Dev 3";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -166,7 +166,7 @@
               } else {
                 continue;
               }
-              
+
               if (!name || typeof name !== 'string') { invalid++; continue; }
               if (blocked.has(name)) { duplicates++; continue; }
               blocked.set(name, timestamp);
@@ -185,16 +185,16 @@
         if (action.data.blockedVideos && typeof action.data.blockedVideos === 'object' && action.data.blockedVideos !== null) {
           for (const [vid, value] of Object.entries(action.data.blockedVideos)) {
             if (!vid || typeof vid !== 'string') continue;
-            if (!blockedVideos.has(vid)) { 
+            if (!blockedVideos.has(vid)) {
               if (typeof value === 'string') {
                 blockedVideos.set(vid, { title: value, timestamp: Date.now() });
               } else if (typeof value === 'object' && value !== null) {
-                blockedVideos.set(vid, { 
-                  title: value.title || vid, 
-                  timestamp: value.timestamp || Date.now() 
+                blockedVideos.set(vid, {
+                  title: value.title || vid,
+                  timestamp: value.timestamp || Date.now()
                 });
               }
-              vAdded++; 
+              vAdded++;
             }
           }
         }
@@ -288,9 +288,9 @@
       tagAllVideos();
       removeBlockedEntries();
       log(`[>] Whitelist mode: ${whitelistModeEnabled ? 'ENABLED' : 'DISABLED'}`);
-      try { 
+      try {
         if (managementTab && !managementTab.closed) {
-          managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+          managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
         }
       } catch(_) {}
     } else if (action.action === 'addPattern' && action.pattern) {
@@ -307,9 +307,9 @@
             removeBlockedEntries();
             log(`[>] Added title pattern: ${action.pattern} (${action.scope || 'both'})`);
         }
-        try { 
+        try {
           if (managementTab && !managementTab.closed) {
-            managementTab.window.name = JSON.stringify({ action: 'refreshManager' }); 
+            managementTab.window.name = JSON.stringify({ action: 'refreshManager' });
           }
         } catch(_) {}
     } else if (action.action === 'removePattern' && action.pattern) {
@@ -327,19 +327,41 @@
       tagAllVideos();
       removeBlockedEntries();
       log(`[>] Removed from whitelist: ${action.channel}`);
+    } else if (action.action === 'requestExportData') {
+      try {
+        const payload = {
+          version: 'detube ' + VERSION,
+          blockedNames: Object.fromEntries(blocked),
+          blockedVideos: Object.fromEntries(blockedVideos),
+          blockedTitlePatterns: blockedTitlePatterns,
+          whitelisted: [...whitelisted]
+        };
+
+        // Send data back to management tab
+        if (managementTab && !managementTab.closed) {
+          managementTab.postMessage({
+            source: 'detube-parent',
+            action: 'exportData',
+            data: payload
+          }, '*');
+        }
+      } catch (e) {
+        log('Export data preparation failed:', e);
+      }
     }
   }
 
   // Set up message listener for communication with management tab
   if (!managerMessageListenerAttached) {
-    managerMessageListenerAttached = true;
-    window.addEventListener('message', (event) => {
-      const data = event.data;
+  managerMessageListenerAttached = true;
+  window.addEventListener('message', (event) => {
+    try {
+      const data = event && event.data;
       if (!data || data.source !== 'detube-manager') return;
-      if (managementTab && event.source && event.source !== managementTab) return;
       processManagerAction(data);
-    });
-  }
+    } catch (e) { /* ignore malformed messages */ }
+  });
+}
 
   // Listen for storage changes to sync blocklist across tabs
   GM_addValueChangeListener(STORAGE_KEY, async (name, oldValue, newValue, remote) => {
@@ -824,19 +846,19 @@
     let s = document.getElementById('detube_style');
     if (!s) {
       // In whitelist mode we rely on DOM removal for performance + correctness
-      s = document.createElement('style'); s.id = 'detube_style'; document.head.append(s); 
+      s = document.createElement('style'); s.id = 'detube_style'; document.head.append(s);
     }
-    
+
     // Only apply CSS rules for explicit blocked channels when not in whitelist mode
     // Hidden attribute instead of CSS display rules, prevents blank placeholders
     const rules = whitelistModeEnabled ? '' : [...blocked.keys()].map(n =>
       `${VIDEO_SELECTORS.map(t => `${t}[data-detube=\"${CSS.escape(n)}\"]`).join(', ')} { display: none !important; }`).join('\\n');
-    
+
     const loadAnimRule = `ytd-continuation-item-renderer.ytd-watch-next-secondary-results-renderer.style-scope {
       height: 0 !important;
       overflow: hidden !important;
     }`;
-    
+
     const hiddenRule = `\n      [hidden] {\n        display: none !important;\n      }`;
     s.textContent = rules + (rules ? '\\n' : '') + loadAnimRule + '\\n' + hiddenRule;
     //log(`Applied ${blocked.size} CSS rules.`);
@@ -1248,11 +1270,11 @@
     // Best way to manage is to direct away to local page
     // Generate HTML for blocked channels overview
     let sortMethod = localStorage.getItem('detube_sort_method') || 'alphabetical';
-    
+
     // Convert Maps to arrays and sort
     let blockedArray = [...blocked.entries()];
     let videosArray = [...blockedVideos.entries()];
-    
+
     if (sortMethod === 'timestamp') {
       blockedArray.sort((a, b) => b[1] - a[1]); // Sort by timestamp (newest first)
       videosArray.sort((a, b) => b[1].timestamp - a[1].timestamp); // Sort by timestamp (newest first)
@@ -1260,7 +1282,7 @@
       blockedArray.sort((a, b) => a[0].localeCompare(b[0])); // Sort alphabetically
       videosArray.sort((a, b) => a[1].title.localeCompare(b[1].title)); // Sort alphabetically
     }
-    
+
     const channelItems = blockedArray.map(([channel, timestamp]) => {
       const date = new Date(timestamp).toLocaleString(); // "MM/DD/YYYY, HH:MM AM/PM" or similar
       return `
@@ -1279,7 +1301,7 @@
         </button>
       </div>
     `}).join('');
-    
+
     const whitelistArray = [...whitelisted].sort();
     const whitelistItems = whitelistArray.map(channel => `
       <div class="channel-item" data-wchannel="${channel.replace(/"/g, '&quot;')}">
@@ -1289,7 +1311,7 @@
         </button>
       </div>
     `).join('');
-    
+
     const videoItems = videosArray.map(([id, videoData]) => {
       const date = new Date(videoData.timestamp).toLocaleString();
       return `
@@ -1303,7 +1325,7 @@
         </button>
       </div>
     `}).join('');
-    
+
     const patternsArray = blockedTitlePatterns.slice();
     const patternItems = patternsArray.map(patternObj => {
     const displayText = (patternObj.scope !== 'both' ? `[${patternObj.scope}]\u00A0\u00A0` : '[both]\u00A0\u00A0') + patternObj.pattern;
@@ -1902,13 +1924,18 @@
     </div>
 
     <script>
+
         // Helper function to post messages to the parent window
         function post(msg) {
-          if (window.opener && typeof window.opener.postMessage === 'function') {
-            window.opener.postMessage(Object.assign({ source: 'detube-manager' }, msg || {}), '*');
-          } else {
-            // ultra-old fallback
-            try { window.name = JSON.stringify(msg); } catch {}
+          const payload = Object.assign({ source: 'detube-manager' }, msg || {});
+          try {
+            if (window.opener && typeof window.opener.postMessage === 'function') {
+              window.opener.postMessage(payload, '*');
+            } else {
+              try { window.name = JSON.stringify(payload); } catch (e) {}
+            }
+          } catch (e) {
+            try { window.name = JSON.stringify(payload); } catch (e) {}
           }
         }
 
@@ -2035,24 +2062,10 @@
 
         function exportData() {
           try {
-            const payload = {
-              version: 'detube ' + version,
-              blockedNames: Object.fromEntries(blocked),
-              blockedVideos: Object.fromEntries(blockedVideos),
-              blockedTitlePatterns: patternsArray,
-              whitelisted: whitelistArray
-            };
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const stamp = new Date().toISOString().replace(/[:.]/g,'-');
-            a.download = 'detube-export-' + stamp + '.json';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+            // Request export data from the parent window
+            post({ action: 'requestExportData' });
           } catch (e) {
-            try { alert('Export failed: ' + e); } catch(_){ /* no-op */ }
+            try { alert('Export failed: ' + e); } catch(_){ /* idc */ }
           }
         }
 
@@ -2228,6 +2241,25 @@
                     post({ action: 'toggleWhitelist', enabled: w.checked });
                 });
             }
+
+            window.addEventListener('message', (event) => {
+              if (event.data && event.data.source === 'detube-parent' && event.data.action === 'exportData') {
+                try {
+                  const payload = event.data.data;
+                  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  const stamp = new Date().toISOString().replace(/[:.]/g,'-');
+                  a.download = 'detube-export-' + stamp + '.json';
+                  document.body.appendChild(a);
+                  a.click();
+                  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
+                } catch (e) {
+                  try { alert('Export failed: ' + e); } catch(_){ /* idc */ }
+                }
+              }
+            });
         });
 
         function addPattern() {
@@ -2358,11 +2390,11 @@
 
   async function checkForUpdates() {
     if (updateNotificationShown) return; // Only check once per session
-    
+
     try {
       const response = await fetch('https://greasyfork.org/scripts/545113-detube-block-channels/versions');
       const text = await response.text();
-      
+
       // Parse the version from the response
       const match = text.match(/<span class="version-number">\s*<a[^>]*>v([\d.]+)<\/a>\s*<\/span>/);
       if (match) {
@@ -2458,7 +2490,7 @@
                     }
                 }
             }
-            
+
             if (node.matches(EMPTY_CONTENT_SELECTORS)) {
                 node.hidden = true;
             } else if (node.querySelector) {
@@ -2600,13 +2632,13 @@
             renderer = iconButton.closest('yt-lockup-view-model, ytd-video-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer');
         }
     }
-    
+
     if (renderer) {
         handleThreeDotClick(renderer);
         try {
           if (tagVideo(renderer)) {
             const ch = renderer.dataset.detube;
-            if (ch) { 
+            if (ch) {
                 scheduleSearchMenuInjection(ch, renderer);
             }
           }
