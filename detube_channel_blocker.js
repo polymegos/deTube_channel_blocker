@@ -35,7 +35,7 @@
 // @name:sw         deTube Zuia vituo
 // @name:ur         deTube چینلز کو بلاک کریں
 // @name:tk         deTube Kanallary petikle
-// @version         0.2.3 Dev
+// @version         0.2.3
 // @description     Adds a "Block Channel", a "Block Video", and a "Whitelist Channel" option to YT video menus. Hides videos from blocked channels and blocked videos automatically. Also supports blocking Shorts.
 // @description:el  Προσθέτει στο μενού των βίντεο στο YT τις επιλογές «Αποκλεισμός καναλιού», «Αποκλεισμός βίντεο» και «Προσθήκη καναλιού στη λίστα επιτρεπόμενων». Αποκρύπτει αυτόματα βίντεο από αποκλεισμένα κανάλια και μεμονωμένα βίντεο. Αποκλείει επίσης τα Shorts.
 // @description:es  Agrega al menú de videos de YT las opciones “Bloquear canal”, “Bloquear video” y “Poner canal en lista blanca”. Oculta automáticamente los videos de canales bloqueados y videos bloqueados. También bloquea Shorts.
@@ -91,7 +91,7 @@
 
 (function() {
   'use strict';
-  const VERSION = "0.2.3 Dev";
+  const VERSION = "0.2.3";
 
   // Channel blocker persistence
   const STORAGE_KEY = 'detube_blocked_channels_store';
@@ -1528,6 +1528,11 @@
             color: #f5f5f5;
         }
 
+        .timestamp {
+            height: 16px;
+            margin-top: 1px;
+        }
+
         #update-notification {
           background: #2e2e2e;
           color: #fff;
@@ -1704,10 +1709,11 @@
             justify-content: space-between;
             align-items: center;
             padding-top: 2px;
+            height: 30px;
             padding-bottom: 2px;
             padding-left: 20px;
             padding-right: 0;
-            margin-bottom: 5px;
+            margin-bottom: 3px;
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
             transition: all 0.3s ease;
@@ -1765,7 +1771,7 @@
             background: linear-gradient(135deg, #e74c3c, #c0392b);
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 16px;
             border-radius: 20px;
             cursor: pointer;
             font-size: 0.9rem;
@@ -1858,13 +1864,8 @@
               </label>
               <span>Whitelist Mode</span>
             </div>
-            <div class="toggle" title="Sort entries by" ${whitelistModeEnabled ? 'style="display:none;"' : ''}>
-              <label for="sort-select" style="margin-right: 8px;">Sort by:</label>
-              <select id="sort-select" onchange="changeSort(this.value)">
-                <option value="alphabetical" ${sortMethod === 'alphabetical' ? 'selected' : ''}>Alphabetical</option>
-                <option value="timestamp" ${sortMethod === 'timestamp' ? 'selected' : ''}>Timestamp</option>
-              </select>
-            </div>
+            <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
+            <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
             <input id="import-file" type="file" accept="application/json" style="display:none" />
             ${whitelistModeEnabled ? '' : `
             <div class="pattern-row" style="flex:1; min-width:250px; display:flex; gap:5px; align-items:center;">
@@ -1875,9 +1876,14 @@
                   <option value="both">Both</option>
               </select>
               <button class="btn" onclick="addPattern()">Add</button>
+            </div>
+            <div class="toggle" title="Sort entries by" ${whitelistModeEnabled ? 'style="display:none;"' : ''}>
+              <label for="sort-select" style="margin-right: 8px;">Sort by:</label>
+              <select id="sort-select" onchange="changeSort(this.value)">
+                <option value="alphabetical" ${sortMethod === 'alphabetical' ? 'selected' : ''}>Alphabetical</option>
+                <option value="timestamp" ${sortMethod === 'timestamp' ? 'selected' : ''}>Timestamp</option>
+              </select>
             </div>`}
-            <button class="btn" onclick="exportData()" title="Export the current state of the blocker to a JSON file">Export</button>
-            <button class="btn" onclick="triggerImport()" title="Import the state of the blocker from a JSON file">Import</button>
         </div>
 
         <div class="channels-list">
@@ -2251,6 +2257,7 @@
                 // Remove any existing listeners to prevent duplicates
                 w.removeEventListener('change', handleWhitelistToggle);
                 w.addEventListener('change', handleWhitelistToggle);
+                refreshUI();
             }
         }
 
