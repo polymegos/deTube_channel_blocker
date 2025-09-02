@@ -4,7 +4,7 @@
 ![Issues](https://img.shields.io/github/issues/polymegos/deTube_channel_blocker)
 ![Last Commit](https://img.shields.io/github/last-commit/polymegos/deTube_channel_blocker)
 [![Wiki](https://img.shields.io/badge/project-wiki-blue)](https://github.com/polymegos/deTube_channel_blocker/wiki)
-[![Donate BTC](https://img.shields.io/badge/donate-BTC-orange.svg)](https://www.blockchain.com/btc/payment_request/bc1qjd9s9atgd504rnhxxaht0lfrajnmzcxyckav75)
+[![Donate Bitcoin](https://img.shields.io/badge/donate-BTC-orange.svg)](bitcoin:bc1qjd9s9atgd504rnhxxaht0lfrajnmzcxyckav75)
 
 **deTube Channel Blocker** is a userscript that hides videos you don't want to see.<br>
 If you're tired of certain videos or channels popping up in your recommendations, this lets you block them easily.
